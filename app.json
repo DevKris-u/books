@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "Margines",
+    "slug": "margines",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "margines",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#F2E9DA",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#12332B"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "pl.margines.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Zdjęcie strony, z której pochodzi Twój ulubiony fragment.",
+        "NSPhotoLibraryUsageDescription": "Wybierz zdjęcie strony z biblioteki, aby dodać fragment."
+      }
+    },
+    "android": {
+      "package": "pl.margines.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#12332B",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Margines potrzebuje dostępu do zdjęć, aby dodać fragment ze strony książki.",
+          "cameraPermission": "Margines potrzebuje aparatu, aby sfotografować stronę książki."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}
