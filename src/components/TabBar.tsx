@@ -1,10 +1,10 @@
 import { Feather } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { colors, fonts } from '@/theme';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { colors } from '@/theme';
 import { tapLight } from '@/lib/haptics';
-import { Txt } from './ui';
 
 const meta: Record<string, { icon: keyof typeof Feather.glyphMap; label: string }> = {
   index: { icon: 'book-open', label: 'Feed' },
@@ -15,109 +15,98 @@ const meta: Record<string, { icon: keyof typeof Feather.glyphMap; label: string 
 
 export function MarginesTabBar({ state, navigateToTab, emitter, insets }: BottomTabBarProps) {
   return (
-    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
-      {state.routes.map((route, index) => {
-        const info = meta[route.name] ?? { icon: 'circle' as const, label: route.name };
-        const active = state.index === index;
-        const isAdd = route.name === 'dodaj';
+    <View
+      style={[
+        styles.dock,
+        {
+          paddingBottom: Math.max(insets.bottom, 10),
+          paddingLeft: Math.max(insets.left, 18),
+          paddingRight: Math.max(insets.right, 18),
+        },
+      ]}
+    >
+      <BlurView intensity={40} tint="dark" style={styles.bar}>
+        <View pointerEvents="none" style={styles.tint} />
+        {state.routes.map((route, index) => {
+          const info = meta[route.name] ?? { icon: 'circle' as const, label: route.name };
+          const active = state.index === index;
 
-        const onPress = () => {
-          void tapLight();
-          const event = emitter.emit({
-            type: 'tabPress',
-            target: route.key,
-            canPreventDefault: true,
-          });
-          if (!active && !event.defaultPrevented) {
-            navigateToTab(route.key);
-          }
-        };
+          const onPress = () => {
+            void tapLight();
+            const event = emitter.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
+            if (!active && !event.defaultPrevented) {
+              navigateToTab(route.key);
+            }
+          };
 
-        if (isAdd) {
           return (
             <Pressable
               key={route.key}
-              accessibilityRole="button"
-              accessibilityLabel="Dodaj fragment"
+              accessibilityRole="tab"
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={info.label}
               onPress={onPress}
-              style={({ pressed }) => [styles.slot, { opacity: pressed ? 0.85 : 1 }]}
+              style={({ pressed }) => [styles.slot, { opacity: pressed ? 0.7 : 1 }]}
             >
-              <View style={styles.addDisc}>
-                <Feather name="plus" size={20} color={colors.onDark} />
-              </View>
-              <Txt variant="meta" color={colors.onDarkSoft} style={styles.label}>
-                Dodaj
-              </Txt>
+              <Feather
+                name={info.icon}
+                size={active ? 24 : 20}
+                color={active ? colors.brass : colors.onDarkSoft}
+                style={active ? styles.iconActive : null}
+              />
             </Pressable>
           );
-        }
-
-        return (
-          <Pressable
-            key={route.key}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: active }}
-            accessibilityLabel={info.label}
-            onPress={onPress}
-            style={styles.slot}
-          >
-            {active ? <View style={styles.activeMark} /> : null}
-            <Feather
-              name={info.icon}
-              size={19}
-              color={active ? colors.onDark : colors.onDarkSoft}
-            />
-            <Txt
-              variant="meta"
-              color={active ? colors.onDark : colors.onDarkSoft}
-              style={styles.label}
-            >
-              {info.label}
-            </Txt>
-          </Pressable>
-        );
-      })}
+        })}
+      </BlurView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  dock: {
+    alignItems: 'center',
+    paddingTop: 8,
+  },
   bar: {
     flexDirection: 'row',
-    backgroundColor: colors.forest,
-    paddingTop: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(168,127,63,0.35)',
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 340,
+    height: 64,
+    paddingHorizontal: 8,
+    borderRadius: 32,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(242,233,218,0.22)',
+    ...(Platform.select({
+      web: { boxShadow: '0 18px 44px rgba(11,36,30,0.38)' } as object,
+      default: {
+        shadowColor: colors.forestDeep,
+        shadowOpacity: 0.34,
+        shadowRadius: 22,
+        shadowOffset: { width: 0, height: 12 },
+        elevation: 10,
+      },
+    }) ?? {}),
+  },
+  tint: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: 'rgba(11,36,30,0.42)',
   },
   slot: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 6,
-    gap: 4,
   },
-  label: {
-    fontSize: 10,
-    fontFamily: fonts.uiMedium,
-    letterSpacing: 0.1,
-  },
-  activeMark: {
-    position: 'absolute',
-    top: -8,
-    width: 26,
-    height: 2,
-    backgroundColor: colors.brass,
-    borderBottomLeftRadius: 2,
-    borderBottomRightRadius: 2,
-  },
-  addDisc: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: colors.claret,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(242,233,218,0.55)',
+  iconActive: {
+    transform: [{ scale: 1.05 }],
   },
 });

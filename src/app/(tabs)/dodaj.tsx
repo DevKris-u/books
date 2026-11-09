@@ -1,9 +1,10 @@
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -25,6 +26,7 @@ import {
   PURPOSES,
 } from '@/data/types';
 import { recogniseFragment } from '@/lib/ocr';
+import { tapLight } from '@/lib/haptics';
 import { normalizeText, plural } from '@/lib/utils';
 import { Candidate } from '@/lib/recommend';
 import { DAILY_POST_LIMIT, postsToday, useStore } from '@/state/store';
@@ -62,6 +64,16 @@ export default function AddScreen() {
   const [newGenre, setNewGenre] = useState<Genre>('obyczajowa');
   const [error, setError] = useState<string | null>(null);
   const [published, setPublished] = useState<'live' | 'moderation' | null>(null);
+  const checkAnim = useRef(new Animated.Value(0)).current;
+  const checkOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!published) return;
+    Animated.parallel([
+      Animated.timing(checkAnim, { toValue: 1, duration: 260, useNativeDriver: true }),
+      Animated.timing(checkOpacity, { toValue: 1, duration: 260, useNativeDriver: true }),
+    ]).start();
+  }, [published, checkAnim, checkOpacity]);
 
   const todayCount = postsToday(state);
   const limitReached = todayCount >= DAILY_POST_LIMIT;
@@ -224,14 +236,19 @@ export default function AddScreen() {
   if (published) {
     return (
       <View style={[styles.root, { paddingTop: insets.top + 20, paddingHorizontal: 22 }]}>
-        <View style={{ flex: 1, justifyContent: 'center' }}>
-          <View style={styles.doneMark}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Animated.View
+            style={[
+              styles.doneMark,
+              { transform: [{ scale: checkAnim }], opacity: checkOpacity },
+            ]}
+          >
             <Feather
               name={published === 'live' ? 'check' : 'shield'}
-              size={22}
-              color={colors.onDark}
+              size={40}
+              color={colors.forest}
             />
-          </View>
+          </Animated.View>
           <Txt style={styles.doneTitle}>
             {published === 'live'
               ? 'Twój fragment jest już w feedzie.'
@@ -284,24 +301,22 @@ export default function AddScreen() {
     >
       <View style={{ paddingHorizontal: 22 }}>
         <View style={styles.header}>
-          <View style={{ flex: 1 }}>
-            <Txt style={styles.title}>Dodaj fragment</Txt>
-            <Txt variant="small" color={colors.inkSoft} style={{ marginTop: 4 }}>
-              Zdjęcie strony, jedna reakcja, gotowe. Dziś: {todayCount}/{DAILY_POST_LIMIT}.
-            </Txt>
-          </View>
           {step > 0 ? (
             <Pressable
               onPress={() => setStep(step - 1)}
               accessibilityRole="button"
-              style={styles.backRow}
+              accessibilityLabel="Wstecz"
+              style={styles.backBtn}
             >
               <Feather name="chevron-left" size={15} color={colors.inkMid} />
-              <Txt variant="meta" color={colors.inkMid}>
-                wstecz
-              </Txt>
             </Pressable>
           ) : null}
+          <View style={{ width: '100%', alignItems: 'center' }}>
+            <Txt style={[styles.title, { textAlign: 'center', width: '100%' }]}>Dodaj fragment</Txt>
+            <Txt variant="small" color={colors.inkSoft} style={{ marginTop: 4, textAlign: 'center', width: '100%' }}>
+              {todayCount}/{DAILY_POST_LIMIT}
+            </Txt>
+          </View>
         </View>
 
         <View style={styles.progress}>
@@ -338,8 +353,7 @@ export default function AddScreen() {
                 Co czujesz? Co myślisz?
               </Txt>
               <Txt variant="small" color={colors.inkSoft} style={{ marginTop: 4 }}>
-                Twoja reakcja jest najważniejsza — to ona jest wpisem. Fragment dołączysz w
-                następnym kroku.
+                Twoja reakcja jest najważniejsza.
               </Txt>
             </View>
 
@@ -358,38 +372,23 @@ export default function AddScreen() {
               <Txt variant="label" color={colors.ink} style={{ fontSize: 16 }}>
                 Po co cytujesz?
               </Txt>
-              <Txt variant="small" color={colors.inkSoft} style={{ marginTop: 4, marginBottom: 10 }}>
-                Wybór zapisujemy przy wpisie. Pokazujemy go w szczegółach, nie na karcie.
-              </Txt>
-              <View style={{ gap: 8 }}>
+              <View style={styles.purposeGrid}>
                 {PURPOSES.map((option) => {
                   const active = purpose === option.value;
                   return (
-                    <Pressable
-                      key={option.value}
-                      onPress={() => setPurpose(option.value)}
-                      accessibilityRole="radio"
-                      accessibilityState={{ selected: active }}
-                      style={[
-                        styles.purposeRow,
-                        {
-                          borderColor: active ? colors.ink : colors.rule,
-                          backgroundColor: active ? colors.forest : 'transparent',
-                        },
-                      ]}
-                    >
-                      <View
-                        style={[
-                          styles.radio,
-                          { borderColor: active ? colors.onDark : colors.rule },
-                        ]}
+                    <View key={option.value} style={styles.purposeCell}>
+                      <Pressable
+                        onPress={() => setPurpose(option.value)}
+                        accessibilityRole="radio"
+                        accessibilityState={{ selected: active }}
+                        style={[styles.purposeCard, active ? styles.purposeCardActive : null]}
                       >
-                        {active ? <View style={styles.radioDot} /> : null}
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Txt variant="label" color={active ? colors.onDark : colors.ink}>
-                          {option.label}
-                        </Txt>
+                        <View style={styles.purposeHead}>
+                          <Txt variant="label" color={active ? colors.onDark : colors.ink}>
+                            {option.label}
+                          </Txt>
+                          {active ? <Feather name="check" size={13} color={colors.brass} /> : null}
+                        </View>
                         <Txt
                           variant="small"
                           color={active ? colors.onDarkSoft : colors.inkSoft}
@@ -397,8 +396,8 @@ export default function AddScreen() {
                         >
                           {option.hint}
                         </Txt>
-                      </View>
-                    </Pressable>
+                      </Pressable>
+                    </View>
                   );
                 })}
               </View>
@@ -409,7 +408,7 @@ export default function AddScreen() {
                 Emocje we fragmencie
               </Txt>
               <Txt variant="small" color={colors.inkSoft} style={{ marginTop: 4, marginBottom: 10 }}>
-                Wybierz 1–3 tagi. Pojawią się na karcie w feedzie.
+                Wybierz 1–3 tagi.
               </Txt>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {EMOTION_TAGS.map((tag) => (
@@ -433,7 +432,7 @@ export default function AddScreen() {
                 Fragment, który Cię zainspirował
               </Txt>
               <Txt variant="small" color={colors.inkSoft} style={{ marginTop: 4 }}>
-                Maksymalnie 500 znaków — około 3–4 zdań. Reszta zostaje w książce.
+                Maksymalnie 3–4 zdania.
               </Txt>
             </View>
 
@@ -506,7 +505,7 @@ export default function AddScreen() {
               hint={
                 ocrDemo
                   ? 'Rozpoznawanie tekstu w tej wersji jest demonstracyjne — popraw tekst pod zdjęciem.'
-                  : 'Oryginalna strona zostaje na zdjęciu. Publikujemy tylko ten skrót.'
+                  : 'Publikujemy tylko ten skrót.'
               }
             />
 
@@ -667,11 +666,6 @@ export default function AddScreen() {
                 </View>
               </View>
             )}
-
-            <Txt variant="small" color={colors.inkSoft}>
-              Książki dodane przez czytelników mają szare oznaczenie źródła i nie trafiają do
-              Hot Peaków, dopóki wydawca ich nie potwierdzi.
-            </Txt>
           </View>
         ) : null}
 
@@ -722,9 +716,14 @@ export default function AddScreen() {
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-        <Btn
-          label={step === 3 ? 'Opublikuj' : 'Dalej'}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={step === 3 ? 'Opublikuj' : 'Dalej'}
+          accessibilityState={{ disabled: !canNext }}
+          disabled={!canNext}
           onPress={() => {
+            if (!canNext) return;
+            void tapLight();
             if (step < 3) {
               setError(null);
               setStep(step + 1);
@@ -732,8 +731,22 @@ export default function AddScreen() {
               publish();
             }
           }}
-          disabled={!canNext}
-        />
+          style={({ pressed }) => [
+            styles.nextBtn,
+            canNext ? styles.nextBtnReady : styles.nextBtnIdle,
+            pressed && canNext ? styles.nextBtnPressed : null,
+          ]}
+        >
+          <Txt variant="label" color={canNext ? colors.onDark : colors.inkSoft} style={{ fontSize: 15 }}>
+            {step === 3 ? 'Opublikuj' : 'Dalej'}
+          </Txt>
+          <Feather
+            name={step === 3 ? 'check' : 'arrow-right'}
+            size={16}
+            color={canNext ? colors.onDark : colors.inkSoft}
+            style={{ marginLeft: 8 }}
+          />
+        </Pressable>
       </View>
     </KeyboardAvoidingView>
   );
@@ -755,11 +768,15 @@ function Row({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.paper },
   header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    position: 'relative',
     paddingTop: 10,
     paddingBottom: 12,
-    gap: 12,
+  },
+  backBtn: {
+    position: 'absolute',
+    left: 22,
+    top: 10,
+    padding: 6,
   },
   title: {
     fontFamily: fonts.semi,
@@ -768,29 +785,34 @@ const styles = StyleSheet.create({
     color: colors.ink,
     letterSpacing: -0.2,
   },
-  backRow: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingTop: 6 },
   progress: { flexDirection: 'row', gap: 8 },
-  purposeRow: {
+  purposeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 10,
+    marginHorizontal: -4,
+  },
+  purposeCell: {
+    width: '50%',
+    paddingHorizontal: 4,
+    paddingBottom: 8,
+  },
+  purposeCard: {
+    flexGrow: 1,
+    borderWidth: 1,
+    borderColor: colors.rule,
+    borderRadius: 10,
+    padding: 10,
+  },
+  purposeCardActive: {
+    backgroundColor: colors.forest,
+    borderColor: colors.forest,
+  },
+  purposeHead: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    borderWidth: 1,
-    borderRadius: 3,
-    padding: 12,
-  },
-  radio: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  radioDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.claret,
+    justifyContent: 'space-between',
+    gap: 6,
   },
   photo: { width: '100%', height: 170, borderRadius: 3 },
   removePhoto: {
@@ -830,19 +852,40 @@ const styles = StyleSheet.create({
   metaRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
   footer: {
     paddingHorizontal: 22,
-    paddingTop: 10,
+    paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.rule,
+    borderTopColor: colors.ruleSoft,
     backgroundColor: colors.paper,
   },
-  doneMark: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: colors.forest,
+  nextBtn: {
+    height: 56,
+    borderRadius: 28,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
+  },
+  nextBtnReady: {
+    backgroundColor: colors.forest,
+    ...(Platform.select({
+      web: { boxShadow: '0 10px 26px rgba(11,36,30,0.25)' } as object,
+      default: {
+        shadowColor: colors.forestDeep,
+        shadowOpacity: 0.28,
+        shadowRadius: 16,
+        shadowOffset: { width: 0, height: 10 },
+        elevation: 6,
+      },
+    }) ?? {}),
+  },
+  nextBtnIdle: {
+    backgroundColor: 'transparent',
+  },
+  nextBtnPressed: {
+    opacity: 0.92,
+    transform: [{ translateY: 1 }],
+  },
+  doneMark: {
+    marginBottom: 24,
   },
   doneTitle: {
     fontFamily: fonts.semi,

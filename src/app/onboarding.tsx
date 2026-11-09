@@ -202,19 +202,13 @@ export default function Onboarding() {
                 </View>
               ) : null}
 
-              <View style={styles.soonRow}>
-                <Feather name="lock" size={13} color={colors.onDarkSoft} />
-                <Txt variant="small" color={colors.onDarkSoft} style={{ flex: 1 }}>
-                  Import z LubimyCzytać — wkrótce. Na razie wklej tytuły albo dodaj je ręcznie.
-                </Txt>
-              </View>
             </Step>
           ) : null}
 
           {step === 4 ? (
             <Step
               title="Ile chcesz czytać?"
-              lead="Cel pomaga w komunikatach, nie w rankingach. Bez celu też jest dobrze — wybierz „bez celu”, jeśli wolisz nie mieć licznika."
+              lead="Cel pomaga nam przypominać ci o czytaniu. Nie musisz go ustawiać."
             >
               <Txt variant="meta" color={colors.onDarkSoft} style={{ marginBottom: 8 }}>
                 strony dziennie
@@ -223,7 +217,7 @@ export default function Onboarding() {
                 {[10, 20, 30, 50].map((value) => (
                   <Choice
                     key={`p${value}`}
-                    label={`${value} stron`}
+                    label={value === 50 ? '+50 stron' : `${value} stron`}
                     active={unit === 'pages' && goal === value}
                     onPress={() => {
                       setUnit('pages');
@@ -240,7 +234,7 @@ export default function Onboarding() {
                 {[15, 30, 45, 60].map((value) => (
                   <Choice
                     key={`m${value}`}
-                    label={`${value} min`}
+                    label={value === 60 ? '+60 min' : `${value} min`}
                     active={unit === 'minutes' && goal === value}
                     onPress={() => {
                       setUnit('minutes');
@@ -501,15 +495,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 7,
     maxWidth: '100%',
-  },
-  soonRow: {
-    flexDirection: 'row',
-    gap: 10,
-    alignItems: 'center',
-    marginTop: 26,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(242,233,218,0.18)',
-    paddingTop: 14,
   },
   footer: { paddingTop: 10 },
 });

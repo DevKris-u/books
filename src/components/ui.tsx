@@ -651,40 +651,46 @@ export function EmptyState({
   body,
   action,
   icon = 'book-open',
+  centered = false,
 }: {
   title: string;
   body: string;
   action?: React.ReactNode;
   icon?: keyof typeof Feather.glyphMap;
+  centered?: boolean;
 }) {
   return (
-    <View style={{ alignItems: 'flex-start', paddingVertical: 28 }}>
-      <View
-        style={{
-          width: 44,
-          height: 44,
-          borderRadius: 22,
-          borderWidth: 1,
-          borderColor: colors.rule,
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: 18,
-        }}
-      >
-        <Feather name={icon} size={18} color={colors.inkMid} />
-      </View>
-      <Txt variant="title" style={{ marginBottom: 8 }}>
+    <View style={[styles.empty, centered ? styles.emptyCentered : null]}>
+      <Feather name={icon} size={30} color={colors.inkMid} style={{ marginBottom: 16 }} />
+      <Txt variant="title" align={centered ? 'center' : 'left'} style={{ marginBottom: 8 }}>
         {title}
       </Txt>
-      <Txt variant="body" color={colors.inkMid} style={{ marginBottom: 20, maxWidth: 320 }}>
+      <Txt
+        variant="body"
+        color={colors.inkMid}
+        align={centered ? 'center' : 'left'}
+        style={{ marginBottom: 20, maxWidth: 320 }}
+      >
         {body}
       </Txt>
-      {action}
+      {action ? <View style={centered ? styles.emptyAction : undefined}>{action}</View> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  empty: {
+    alignItems: 'flex-start',
+    paddingVertical: 28,
+  },
+  emptyCentered: {
+    alignItems: 'center',
+    paddingVertical: 36,
+  },
+  emptyAction: {
+    width: '100%',
+    maxWidth: 300,
+  },
   btn: {
     height: 52,
     borderRadius: 3,

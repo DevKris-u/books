@@ -1,9 +1,10 @@
 import { Feather } from '@expo/vector-icons';
-import React from 'react';
+import React, { useState } from 'react';
 import { Platform, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
-import { colors, fonts, radius, space, type } from '@/theme';
+import { colors, fonts, type } from '@/theme';
 import { Candidate } from '@/lib/recommend';
-import { Cover, Pill, Rule, SourceMark, Txt } from './ui';
+import { ScallopedPanel } from './ScallopedPanel';
+import { Cover, Pill, SourceMark, Txt } from './ui';
 
 function readingSize(length: number, height: number) {
   let size = 23;
@@ -26,12 +27,21 @@ export function FragmentCard({
 }) {
   const { height } = useWindowDimensions();
   const reading = readingSize(card.text.length, height);
+  const [frame, setFrame] = useState({ width: 0, height: 0 });
 
   return (
     <Pressable
       onPress={onPress}
       onLongPress={onLongPress}
       delayLongPress={380}
+      onLayout={(event) => {
+        const { width, height: cardHeight } = event.nativeEvent.layout;
+        setFrame((prev) =>
+          prev.width === width && prev.height === cardHeight
+            ? prev
+            : { width, height: cardHeight },
+        );
+      }}
       accessibilityRole="button"
       accessibilityLabel={`Fragment z książki ${card.book.title}. Kliknij, aby zobaczyć książkę, przytrzymaj, aby otworzyć menu.`}
       style={({ pressed }) => [
@@ -40,7 +50,15 @@ export function FragmentCard({
         pressed ? { opacity: 0.97 } : null,
       ]}
     >
-      <View style={styles.topRow}>
+      <ScallopedPanel
+        width={frame.width}
+        height={frame.height}
+        fill={colors.forestTint}
+        style={styles.panel}
+      />
+
+      <View style={styles.content}>
+        <View style={styles.topRow}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Feather name="feather" size={11} color={colors.inkSoft} />
           <Txt variant="micro" color={colors.inkSoft}>
@@ -50,14 +68,7 @@ export function FragmentCard({
         <SourceMark source={card.book.source} />
       </View>
 
-      <Rule color={colors.ruleSoft} />
-
       <View style={styles.body}>
-        <View style={styles.margin}>
-          <View style={styles.marginRule} />
-          <View style={styles.marginDot} />
-        </View>
-
         <View style={styles.column}>
           <View style={styles.fragmentWrap}>
             <Txt
@@ -109,6 +120,7 @@ export function FragmentCard({
         </View>
         <Feather name="chevron-right" size={16} color={colors.inkSoft} />
       </View>
+      </View>
     </Pressable>
   );
 }
@@ -116,50 +128,33 @@ export function FragmentCard({
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    backgroundColor: colors.paperSoft,
-    borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: 'rgba(27,22,17,0.14)',
-    paddingTop: 16,
-    paddingBottom: 0,
-    overflow: 'hidden',
+  },
+  panel: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  content: {
+    flex: 1,
+    padding: 28,
   },
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 18,
-    paddingBottom: 12,
+    paddingBottom: 10,
   },
   body: {
     flex: 1,
     flexDirection: 'row',
-    paddingTop: 22,
-  },
-  margin: {
-    width: 30,
-    alignItems: 'center',
-  },
-  marginRule: {
-    position: 'absolute',
-    top: 2,
-    bottom: 0,
-    width: StyleSheet.hairlineWidth,
-    backgroundColor: 'rgba(142,47,54,0.28)',
-  },
-  marginDot: {
-    marginTop: 8,
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: colors.claret,
+    paddingTop: 12,
   },
   column: {
     flex: 1,
-    paddingRight: 22,
+    paddingRight: 14,
     justifyContent: 'center',
-    gap: 18,
-    paddingBottom: 16,
+    gap: 14,
+    paddingBottom: 8,
   },
   fragmentWrap: {
     maxWidth: 420,
@@ -182,10 +177,6 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.rule,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    backgroundColor: 'rgba(231,219,198,0.35)',
+    paddingVertical: 10,
   },
 });

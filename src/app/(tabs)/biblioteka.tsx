@@ -103,27 +103,18 @@ export default function LibraryScreen() {
                 onPress={() => setShelf(key)}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: active }}
-                style={styles.shelfTab}
+                accessibilityLabel={`${SHELF_LABEL[key]}, ${counts[key]}`}
+                style={[styles.shelfTab, active ? styles.shelfTabActive : null]}
               >
-                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
-                  <Txt
-                    variant="label"
-                    color={active ? colors.ink : colors.inkSoft}
-                    style={{ fontSize: 14 }}
-                  >
-                    {SHELF_LABEL[key]}
-                  </Txt>
-                  <Txt variant="micro" color={colors.inkSoft}>
-                    {counts[key]}
-                  </Txt>
-                </View>
-                <View
-                  style={{
-                    height: 2,
-                    marginTop: 7,
-                    backgroundColor: active ? colors.claret : 'transparent',
-                  }}
-                />
+                <Txt
+                  numberOfLines={1}
+                  style={[styles.shelfLabel, active ? styles.shelfLabelActive : null]}
+                >
+                  {SHELF_LABEL[key]}
+                </Txt>
+                <Txt style={[styles.shelfCount, active ? styles.shelfCountActive : null]}>
+                  {counts[key]}
+                </Txt>
               </Pressable>
             );
           })}
@@ -167,6 +158,7 @@ export default function LibraryScreen() {
           {items.length === 0 ? (
             shelfEmpty ? (
               <EmptyState
+                centered
                 icon={shelf === 'read' ? 'check-circle' : shelf === 'reading' ? 'book-open' : 'bookmark'}
                 title={
                   shelf === 'want'
@@ -182,16 +174,10 @@ export default function LibraryScreen() {
                       ? 'Oznacz książkę jako „Czytam”, żeby dopisywać postęp i wracać do niej wieczorem.'
                       : 'Oznacz przeczytaną książkę i dodaj jedno zdanie wrażeń. Bez recenzji, bez gwiazdek na pokaz.'
                 }
-                action={
-                  <Btn
-                    label="Wróć do feedu"
-                    variant="ghost"
-                    onPress={() => router.navigate('/')}
-                  />
-                }
               />
             ) : (
               <EmptyState
+                centered
                 icon="search"
                 title="Brak wyników"
                 body="Nie mamy nic, co pasuje do tego szukania i filtrów. Wyczyść filtry i spróbuj jeszcze raz."
@@ -458,8 +444,45 @@ const styles = StyleSheet.create({
     color: colors.ink,
     letterSpacing: -0.3,
   },
-  shelves: { flexDirection: 'row', gap: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.rule },
-  shelfTab: { flex: 1, paddingBottom: 0 },
+  shelves: {
+    flexDirection: 'row',
+    gap: 4,
+    padding: 4,
+    borderRadius: 14,
+    backgroundColor: colors.paperDeep,
+  },
+  shelfTab: {
+    flex: 1,
+    height: 42,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 1,
+  },
+  shelfTabActive: {
+    backgroundColor: colors.forest,
+  },
+  shelfLabel: {
+    fontFamily: fonts.uiMedium,
+    fontSize: 11.5,
+    lineHeight: 15,
+    letterSpacing: 0.1,
+    color: colors.inkSoft,
+  },
+  shelfLabelActive: {
+    color: colors.onDark,
+  },
+  shelfCount: {
+    fontFamily: fonts.uiMedium,
+    fontSize: 9.5,
+    lineHeight: 12,
+    letterSpacing: 0.2,
+    color: colors.inkSoft,
+    fontVariant: ['tabular-nums'],
+  },
+  shelfCountActive: {
+    color: colors.brass,
+  },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, gap: 10 },
   rowMain: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   moreBtn: { padding: 6 },

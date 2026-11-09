@@ -7,9 +7,10 @@ import { CardMenu } from '@/components/CardMenu';
 import { LikeSheet } from '@/components/LikeSheet';
 import { ShopSheet } from '@/components/ShopSheet';
 import { SwipeDeck, SwipeDeckHandle } from '@/components/SwipeDeck';
-import { Btn, EmptyState, IconBtn, Txt } from '@/components/ui';
+import { Btn, EmptyState, Txt } from '@/components/ui';
 import { EmotionTag } from '@/data/types';
 import { buildQueue, Candidate } from '@/lib/recommend';
+import { tapLight } from '@/lib/haptics';
 import { hotPeakStatus, useStore } from '@/state/store';
 import { colors, fonts } from '@/theme';
 
@@ -102,28 +103,36 @@ export default function FeedScreen() {
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.padded}>
         <View style={styles.header}>
-          {state.lastAction ? (
-            <IconBtn
-              name="corner-up-left"
-              label="Cofnij ostatnią kartę"
-              size={36}
-              onPress={undo}
-              style={{ marginRight: 10 }}
-            />
-          ) : null}
           <Txt style={styles.wordmark}>margines</Txt>
           <View style={{ flex: 1 }} />
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Hot Peak, pozostało ${hot.remaining} z ${hot.quota}`}
             onPress={() => router.push('/hot-peak')}
-            style={({ pressed }) => [styles.hotPill, pressed ? { opacity: 0.7 } : null]}
+            style={({ pressed }) => [styles.hotPill, pressed ? { opacity: 0.72 } : null]}
           >
-            <Feather name="zap" size={12} color={colors.brass} />
-            <Txt variant="meta" color="#6E5224">
-              Hot Peak · {hot.remaining}/{hot.quota}
+            <View style={styles.hotIcon}>
+              <Feather name="zap" size={10} color={colors.forestDeep} />
+            </View>
+            <Txt style={styles.hotLabel}>Hot Peak</Txt>
+            <View style={styles.hotDivider} />
+            <Txt style={styles.hotCount}>
+              {hot.remaining}/{hot.quota}
             </Txt>
           </Pressable>
+          {state.lastAction ? (
+            <View pointerEvents="box-none" style={styles.undoWrap}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Cofnij ostatnią kartę"
+                hitSlop={12}
+                onPress={undo}
+                style={({ pressed }) => [styles.undo, pressed ? { opacity: 0.45 } : null]}
+              >
+                <Feather name="corner-up-left" size={20} color={colors.inkMid} />
+              </Pressable>
+            </View>
+          ) : null}
         </View>
 
         {notice ? (
@@ -203,11 +212,15 @@ export default function FeedScreen() {
 
         {!done ? (
           <View style={styles.actions}>
-            <IconBtn
-              name="x"
-              label="Pomiń fragment"
-              size={50}
-              onPress={() => deckRef.current?.swipe('pass')}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Pomiń fragment"
+              accessibilityHint="Przesuwa kartę w lewo"
+              onPress={() => {
+                void tapLight();
+                deckRef.current?.swipe('pass');
+              }}
+              style={styles.edgeZoneLeft}
             />
             <View style={{ alignItems: 'center' }}>
               <Txt variant="meta" color={colors.ink}>
@@ -217,12 +230,12 @@ export default function FeedScreen() {
                 w tej sesji
               </Txt>
             </View>
-            <IconBtn
-              name="bookmark"
-              label="Zapisz fragment"
-              size={50}
-              color={colors.claret}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Zapisz fragment"
+              accessibilityHint="Przesuwa kartę w prawo i dodaje ją na półkę"
               onPress={() => deckRef.current?.swipe('like')}
+              style={styles.edgeZoneRight}
             />
           </View>
         ) : (
@@ -278,6 +291,21 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 6,
   },
+  undoWrap: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  undo: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   wordmark: {
     fontFamily: fonts.semi,
     fontSize: 20,
@@ -288,12 +316,39 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: colors.brassTint,
+    height: 32,
+    paddingLeft: 6,
+    paddingRight: 10,
+    borderRadius: 16,
+    backgroundColor: colors.forest,
     borderWidth: 1,
-    borderColor: 'rgba(168,127,63,0.45)',
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 3,
+    borderColor: 'rgba(168,127,63,0.55)',
+  },
+  hotIcon: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.brass,
+  },
+  hotLabel: {
+    fontFamily: fonts.uiSemi,
+    fontSize: 11.5,
+    letterSpacing: 0.2,
+    color: colors.onDark,
+  },
+  hotDivider: {
+    width: StyleSheet.hairlineWidth,
+    height: 12,
+    backgroundColor: 'rgba(242,233,218,0.22)',
+  },
+  hotCount: {
+    fontFamily: fonts.uiMedium,
+    fontSize: 11,
+    letterSpacing: 0.2,
+    color: colors.brass,
+    fontVariant: ['tabular-nums'],
   },
   hint: {
     flexDirection: 'row',
@@ -325,8 +380,23 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    minHeight: 50,
     paddingTop: 10,
     paddingBottom: 12,
+  },
+  edgeZoneLeft: {
+    position: 'absolute',
+    left: -22,
+    top: 0,
+    bottom: 0,
+    width: 88,
+  },
+  edgeZoneRight: {
+    position: 'absolute',
+    right: -22,
+    top: 0,
+    bottom: 0,
+    width: 88,
   },
 });
