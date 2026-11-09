@@ -435,6 +435,7 @@ const styles = StyleSheet.create({
   marks: { flexDirection: 'row', gap: 5, flex: 1 },
   mark: { height: 2, flex: 1, borderRadius: 1 },
   headline: {
+    marginTop: 14,
     fontFamily: fonts.semi,
     fontSize: 31,
     lineHeight: 38,
