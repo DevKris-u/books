@@ -138,7 +138,7 @@ export default function Onboarding() {
           {step === 2 ? (
             <Step
               title="Po co czytasz?"
-              lead="Fragmenty dobieramy też po emocji. Wybierz to, czego teraz szukasz — zmienisz to później w profilu."
+              lead="Fragmenty dobieramy też po emocji. Wybierz to, czego szukasz w książkach"
             >
               <View style={styles.grid}>
                 {MOODS.map((mood) => (
