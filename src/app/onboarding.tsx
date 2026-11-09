@@ -156,7 +156,7 @@ export default function Onboarding() {
           {step === 3 ? (
             <Step
               title="Twoja lista"
-              lead="Masz już listę książek, które chcesz przeczytać? Wklej ją — algorytm nie będzie podpowiadał Ci tego, co już znasz."
+              lead="Masz już listę książek, które chcesz przeczytać lub przeczytałeś ?"
             >
               <Txt variant="label" color={colors.onDark} style={{ marginBottom: 8 }}>
                 Wklej tytuły, każdy w nowej linii
