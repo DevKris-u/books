@@ -459,7 +459,7 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   preview: {
-    marginTop: 30,
+    marginTop: 140,
     backgroundColor: colors.paper,
     borderRadius: 4,
     padding: 18,
