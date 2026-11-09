@@ -335,10 +335,6 @@ function Welcome() {
       </Txt>
       <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
         <View style={{ width: 2, backgroundColor: 'rgba(168,127,63,0.7)' }} />
-        <Txt variant="small" color={colors.onDarkSoft} style={{ flex: 1, lineHeight: 21 }}>
-          Nie kolejna lista bestsellerów. Zdanie z prawdziwej książki i czyjaś reakcja —
-          przesuwasz w prawo to, co Cię wciąga.
-        </Txt>
       </View>
 
       <View style={styles.preview}>
