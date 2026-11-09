@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Candidate } from '@/lib/recommend';
 import { useStore } from '@/state/store';
-import { colors } from '@/theme';
+import { useColors } from '@/theme';
 import { Btn, Cover, Sheet, SourceMark, Txt } from './ui';
 
 export function LikeSheet({
@@ -22,6 +22,7 @@ export function LikeSheet({
   onSimilar: () => void;
 }) {
   const { state, dispatch } = useStore();
+  const c = useColors();
   const [added, setAdded] = useState(false);
 
   useEffect(() => {
@@ -43,16 +44,16 @@ export function LikeSheet({
       <View style={{ flexDirection: 'row', gap: 14, marginBottom: 18 }}>
         <Cover book={book} width={54} />
         <View style={{ flex: 1, justifyContent: 'center', gap: 3 }}>
-          <Txt variant="meta" color={colors.inkSoft}>
+          <Txt variant="meta" color={c.inkSoft}>
             {mode === 'hot' ? 'Hot Peak · wybrane dla Ciebie' : 'fragment zapisany'}
           </Txt>
           <Txt
             numberOfLines={2}
-            style={{ color: colors.ink, fontFamily: 'Literata_600SemiBold', fontSize: 19, lineHeight: 24 }}
+            style={{ color: c.ink, fontFamily: 'Literata_600SemiBold', fontSize: 19, lineHeight: 24 }}
           >
             {book.title}
           </Txt>
-          <Txt variant="small" color={colors.inkMid}>
+          <Txt variant="small" color={c.inkMid}>
             {book.author}
           </Txt>
         </View>
@@ -66,10 +67,10 @@ export function LikeSheet({
           marginBottom: 20,
         }}
       >
-        <Txt variant="reaction" color={colors.claret} numberOfLines={2}>
+        <Txt variant="reaction" color={c.claret} numberOfLines={2}>
           {card.reaction}
         </Txt>
-        <Txt variant="micro" color={colors.inkSoft} style={{ marginTop: 5 }}>
+        <Txt variant="micro" color={c.inkSoft} style={{ marginTop: 5 }}>
           Twoja reakcja zostaje przy fragmencie
         </Txt>
       </View>
@@ -123,8 +124,8 @@ export function LikeSheet({
       >
         <SourceMark source={book.source} showLabel />
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          <Feather name="book" size={11} color={colors.inkSoft} />
-          <Txt variant="micro" color={colors.inkSoft}>
+          <Feather name="book" size={11} color={c.inkSoft} />
+          <Txt variant="micro" color={c.inkSoft}>
             {book.pages} str.
           </Txt>
         </View>

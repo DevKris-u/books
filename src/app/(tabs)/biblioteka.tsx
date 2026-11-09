@@ -25,7 +25,7 @@ import {
 } from '@/components/ui';
 import { Book, GENRES, Genre, MOODS, Mood, SHELF_LABEL, Shelf } from '@/data/types';
 import { useStore } from '@/state/store';
-import { colors, fonts } from '@/theme';
+import { colors, fonts, useColors } from '@/theme';
 
 const SHELVES: Shelf[] = ['want', 'reading', 'read'];
 
@@ -33,6 +33,7 @@ export default function LibraryScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { state, dispatch } = useStore();
+  const c = useColors();
 
   const [shelf, setShelf] = useState<Shelf>('want');
   const [query, setQuery] = useState('');
@@ -83,13 +84,14 @@ export default function LibraryScreen() {
   };
 
   const shelfEmpty = all.filter((entry) => entry.item.shelf === shelf).length === 0;
+  const styles = makeStyles(c);
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={{ flex: 1, paddingHorizontal: 22 }}>
         <View style={{ paddingTop: 10, paddingBottom: 12 }}>
           <Txt style={styles.title}>Biblioteka</Txt>
-          <Txt variant="small" color={colors.inkSoft} style={{ marginTop: 4 }}>
+          <Txt variant="small" color={c.inkSoft} style={{ marginTop: 4 }}>
             {all.length} {all.length === 1 ? 'książka' : 'książek'} na trzech półkach
           </Txt>
         </View>
@@ -135,7 +137,7 @@ export default function LibraryScreen() {
             label="Filtry"
             size={44}
             onPress={() => setFiltersOpen(true)}
-            color={genre || mood ? colors.claret : colors.ink}
+            color={genre || mood ? c.claret : c.ink}
           />
         </View>
 
@@ -209,11 +211,11 @@ export default function LibraryScreen() {
                     <View style={{ flex: 1 }}>
                       <Txt
                         numberOfLines={1}
-                        style={{ fontFamily: fonts.semi, fontSize: 16, color: colors.ink }}
+                        style={{ fontFamily: fonts.semi, fontSize: 16, color: c.ink }}
                       >
                         {book.title}
                       </Txt>
-                      <Txt variant="small" color={colors.inkSoft} numberOfLines={1}>
+                      <Txt variant="small" color={c.inkSoft} numberOfLines={1}>
                         {book.author} · {book.genre}
                       </Txt>
 
@@ -223,7 +225,7 @@ export default function LibraryScreen() {
                             <View
                               style={{
                                 height: 2,
-                                backgroundColor: colors.claret,
+                                backgroundColor: c.claret,
                                 width: `${
                                   book.pages && item.progress
                                     ? Math.min(100, Math.round((item.progress / book.pages) * 100))
@@ -232,7 +234,7 @@ export default function LibraryScreen() {
                               }}
                             />
                           </View>
-                          <Txt variant="micro" color={colors.inkSoft} style={{ marginTop: 4 }}>
+                          <Txt variant="micro" color={c.inkSoft} style={{ marginTop: 4 }}>
                             {item.progress
                               ? `strona ${item.progress} z ${book.pages || '?'}`
                               : 'dodaj postęp czytania'}
@@ -246,7 +248,7 @@ export default function LibraryScreen() {
                           {item.note ? (
                             <Txt
                               variant="small"
-                              color={colors.inkMid}
+                              color={c.inkMid}
                               numberOfLines={1}
                               style={{ marginTop: 4, fontFamily: fonts.readItalic }}
                             >
@@ -264,7 +266,7 @@ export default function LibraryScreen() {
                     hitSlop={8}
                     style={styles.moreBtn}
                   >
-                    <Feather name="more-horizontal" size={18} color={colors.inkMid} />
+                    <Feather name="more-horizontal" size={18} color={c.inkMid} />
                   </Pressable>
                 </View>
               </View>
@@ -275,7 +277,7 @@ export default function LibraryScreen() {
 
       {/* Filters */}
       <Sheet visible={filtersOpen} onClose={() => setFiltersOpen(false)} title="Filtry">
-        <Txt variant="meta" color={colors.inkSoft} style={{ marginBottom: 8 }}>
+        <Txt variant="meta" color={c.inkSoft} style={{ marginBottom: 8 }}>
           gatunek
         </Txt>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 18 }}>
@@ -289,7 +291,7 @@ export default function LibraryScreen() {
             />
           ))}
         </View>
-        <Txt variant="meta" color={colors.inkSoft} style={{ marginBottom: 8 }}>
+        <Txt variant="meta" color={c.inkSoft} style={{ marginBottom: 8 }}>
           tag emocjonalny
         </Txt>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 20 }}>
@@ -310,7 +312,7 @@ export default function LibraryScreen() {
       <Sheet visible={!!menuFor} onClose={() => setMenuFor(null)}>
         {menuFor ? (
           <>
-            <Txt variant="meta" color={colors.inkSoft} style={{ marginBottom: 4 }}>
+            <Txt variant="meta" color={c.inkSoft} style={{ marginBottom: 4 }}>
               {menuFor.author}
             </Txt>
             <Txt variant="title" style={{ marginBottom: 14 }}>
@@ -327,14 +329,14 @@ export default function LibraryScreen() {
                 accessibilityRole="button"
                 style={styles.menuRow}
               >
-                <Feather name="corner-up-right" size={16} color={colors.inkMid} />
+                <Feather name="corner-up-right" size={16} color={c.inkMid} />
                 <Txt variant="label" style={{ flex: 1 }}>
                   Przenieś na „{SHELF_LABEL[key]}”
                 </Txt>
               </Pressable>
             ))}
             <Pressable onPress={() => openEdit(menuFor)} accessibilityRole="button" style={styles.menuRow}>
-              <Feather name="edit-3" size={16} color={colors.inkMid} />
+              <Feather name="edit-3" size={16} color={c.inkMid} />
               <Txt variant="label" style={{ flex: 1 }}>
                 {shelf === 'read' ? 'Oceń i dopisz wrażenie' : 'Dodaj postęp czytania'}
               </Txt>
@@ -348,7 +350,7 @@ export default function LibraryScreen() {
               accessibilityRole="button"
               style={styles.menuRow}
             >
-              <Feather name="shopping-bag" size={16} color={colors.inkMid} />
+              <Feather name="shopping-bag" size={16} color={c.inkMid} />
               <Txt variant="label" style={{ flex: 1 }}>
                 Zobacz, gdzie kupić
               </Txt>
@@ -361,8 +363,8 @@ export default function LibraryScreen() {
               accessibilityRole="button"
               style={styles.menuRow}
             >
-              <Feather name="trash-2" size={16} color={colors.claret} />
-              <Txt variant="label" color={colors.claret} style={{ flex: 1 }}>
+              <Feather name="trash-2" size={16} color={c.claret} />
+              <Txt variant="label" color={c.claret} style={{ flex: 1 }}>
                 Usuń z biblioteki
               </Txt>
             </Pressable>
@@ -379,7 +381,7 @@ export default function LibraryScreen() {
         >
           {editing ? (
             <>
-              <Txt variant="small" color={colors.inkSoft} style={{ marginTop: -10, marginBottom: 16 }}>
+              <Txt variant="small" color={c.inkSoft} style={{ marginTop: -10, marginBottom: 16 }}>
                 {editing.author}
               </Txt>
               <Field
@@ -390,12 +392,12 @@ export default function LibraryScreen() {
                 keyboardType="number-pad"
                 hint={editing.pages ? `Książka ma ${editing.pages} stron.` : undefined}
               />
-              <Txt variant="label" color={colors.inkMid} style={{ marginTop: 18, marginBottom: 8 }}>
+              <Txt variant="label" color={c.inkMid} style={{ marginTop: 18, marginBottom: 8 }}>
                 Ocena
               </Txt>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
                 <Stars value={ratingDraft} onChange={setRatingDraft} />
-                <Txt variant="small" color={colors.inkSoft}>
+                <Txt variant="small" color={c.inkSoft}>
                   {ratingDraft ? `${ratingDraft}/5` : 'opcjonalnie'}
                 </Txt>
               </View>
@@ -435,64 +437,66 @@ export default function LibraryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.paper },
-  title: {
-    fontFamily: fonts.semi,
-    fontSize: 26,
-    lineHeight: 32,
-    color: colors.ink,
-    letterSpacing: -0.3,
-  },
-  shelves: {
-    flexDirection: 'row',
-    gap: 4,
-    padding: 4,
-    borderRadius: 14,
-    backgroundColor: colors.paperDeep,
-  },
-  shelfTab: {
-    flex: 1,
-    height: 42,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 1,
-  },
-  shelfTabActive: {
-    backgroundColor: colors.forest,
-  },
-  shelfLabel: {
-    fontFamily: fonts.uiMedium,
-    fontSize: 11.5,
-    lineHeight: 15,
-    letterSpacing: 0.1,
-    color: colors.inkSoft,
-  },
-  shelfLabelActive: {
-    color: colors.onDark,
-  },
-  shelfCount: {
-    fontFamily: fonts.uiMedium,
-    fontSize: 9.5,
-    lineHeight: 12,
-    letterSpacing: 0.2,
-    color: colors.inkSoft,
-    fontVariant: ['tabular-nums'],
-  },
-  shelfCountActive: {
-    color: colors.brass,
-  },
-  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, gap: 10 },
-  rowMain: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  moreBtn: { padding: 6 },
-  progressTrack: { height: 2, backgroundColor: colors.ruleSoft, width: '100%' },
-  menuRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 15,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.ruleSoft,
-  },
-});
+function makeStyles(c: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.paper },
+    title: {
+      fontFamily: fonts.semi,
+      fontSize: 26,
+      lineHeight: 32,
+      color: c.ink,
+      letterSpacing: -0.3,
+    },
+    shelves: {
+      flexDirection: 'row',
+      gap: 4,
+      padding: 4,
+      borderRadius: 14,
+      backgroundColor: c.paperDeep,
+    },
+    shelfTab: {
+      flex: 1,
+      height: 42,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 1,
+    },
+    shelfTabActive: {
+      backgroundColor: c.forest,
+    },
+    shelfLabel: {
+      fontFamily: fonts.uiMedium,
+      fontSize: 11.5,
+      lineHeight: 15,
+      letterSpacing: 0.1,
+      color: c.inkSoft,
+    },
+    shelfLabelActive: {
+      color: c.onDark,
+    },
+    shelfCount: {
+      fontFamily: fonts.uiMedium,
+      fontSize: 9.5,
+      lineHeight: 12,
+      letterSpacing: 0.2,
+      color: c.inkSoft,
+      fontVariant: ['tabular-nums'],
+    },
+    shelfCountActive: {
+      color: c.brass,
+    },
+    row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, gap: 10 },
+    rowMain: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+    moreBtn: { padding: 6 },
+    progressTrack: { height: 2, backgroundColor: c.ruleSoft, width: '100%' },
+    menuRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingVertical: 15,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: c.ruleSoft,
+    },
+  });
+}

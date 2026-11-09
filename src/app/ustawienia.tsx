@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Btn, Field, Rule, ScreenHeader, Sheet, Toggle, Txt } from '@/components/ui';
 import { formatDate } from '@/lib/utils';
 import { hotPeakStatus, NotificationKey, useStore } from '@/state/store';
-import { colors, fonts } from '@/theme';
+import { fonts, useColors } from '@/theme';
 
 const NOTIFICATIONS: { key: NotificationKey; label: string; hint: string }[] = [
   {
@@ -40,6 +40,7 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { state, dispatch } = useStore();
+  const c = useColors();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(state.profile.name);
   const [handle, setHandle] = useState(state.profile.handle);
@@ -48,7 +49,7 @@ export default function SettingsScreen() {
   const hot = hotPeakStatus(state);
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    <View style={[styles.root, { paddingTop: insets.top, backgroundColor: c.paper }]}>
       <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingBottom: 40 }}>
         <ScreenHeader title="Ustawienia" onBack={() => router.back()} />
 
@@ -64,11 +65,11 @@ export default function SettingsScreen() {
           >
             <View style={{ flex: 1 }}>
               <Txt variant="label">Edycja profilu</Txt>
-              <Txt variant="small" color={colors.inkSoft} style={{ marginTop: 2 }}>
+              <Txt variant="small" color={c.inkSoft} style={{ marginTop: 2 }}>
                 {state.profile.name} · @{state.profile.handle}
               </Txt>
             </View>
-            <Feather name="chevron-right" size={16} color={colors.inkSoft} />
+            <Feather name="chevron-right" size={16} color={c.inkSoft} />
           </Pressable>
           <Row
             label="Dołączenie"
@@ -88,7 +89,7 @@ export default function SettingsScreen() {
             >
               <View style={{ flex: 1, paddingRight: 14 }}>
                 <Txt variant="label">{item.label}</Txt>
-                <Txt variant="small" color={colors.inkSoft} style={{ marginTop: 2 }}>
+                <Txt variant="small" color={c.inkSoft} style={{ marginTop: 2 }}>
                   {item.hint}
                 </Txt>
               </View>
@@ -109,24 +110,42 @@ export default function SettingsScreen() {
           >
             <View style={{ flex: 1 }}>
               <Txt variant="label">{state.pro ? 'Plan Pro' : 'Plan darmowy'}</Txt>
-              <Txt variant="small" color={colors.inkSoft} style={{ marginTop: 2 }}>
+              <Txt variant="small" color={c.inkSoft} style={{ marginTop: 2 }}>
                 {state.pro
                   ? '15 Hot Peaków na godzinę · odnawia się za 24 dni'
                   : '1 Hot Peak dziennie · reklamy opcjonalne'}
               </Txt>
             </View>
-            <Txt variant="meta" color={colors.claret}>
+            <Txt variant="meta" color={c.claret}>
               zarządzaj
             </Txt>
           </Pressable>
           <View style={styles.row}>
             <View style={{ flex: 1 }}>
               <Txt variant="label">Historia reklam</Txt>
-              <Txt variant="small" color={colors.inkSoft} style={{ marginTop: 2 }}>
+              <Txt variant="small" color={c.inkSoft} style={{ marginTop: 2 }}>
                 obejrzane: {state.adsWatchedTotal} · dziś: {hot.adsToday}/3 · odblokowane
                 Hot Peaki: {hot.adsToday}
               </Txt>
             </View>
+          </View>
+        </Section>
+
+        <Section title="Wygląd">
+          <View style={[styles.row, styles.rowBorder]}>
+            <View style={{ flex: 1, paddingRight: 14 }}>
+              <Txt variant="label">Motyw aplikacji</Txt>
+              <Txt variant="small" color={c.inkSoft} style={{ marginTop: 2 }}>
+                {state.theme === 'dark' ? 'Ciemny' : 'Jasny'}
+              </Txt>
+            </View>
+            <Toggle
+              label="Ciemny"
+              value={state.theme === 'dark'}
+              onChange={() =>
+                dispatch({ type: 'SET_THEME', theme: state.theme === 'dark' ? 'light' : 'dark' })
+              }
+            />
           </View>
         </Section>
 
@@ -139,21 +158,21 @@ export default function SettingsScreen() {
             <Txt variant="label" style={{ flex: 1 }}>
               Wyloguj
             </Txt>
-            <Feather name="log-out" size={16} color={colors.inkMid} />
+            <Feather name="log-out" size={16} color={c.inkMid} />
           </Pressable>
           <Pressable
             onPress={() => setConfirm('delete')}
             accessibilityRole="button"
-            style={[styles.row, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.rule }]}
+            style={[styles.row, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.rule }]}
           >
-            <Txt variant="label" color={colors.claret} style={{ flex: 1 }}>
+            <Txt variant="label" color={c.claret} style={{ flex: 1 }}>
               Usuń konto
             </Txt>
-            <Feather name="trash-2" size={16} color={colors.claret} />
+            <Feather name="trash-2" size={16} color={c.claret} />
           </Pressable>
         </Section>
 
-        <Txt variant="micro" color={colors.inkSoft} style={{ marginTop: 26, lineHeight: 17 }}>
+        <Txt variant="micro" color={c.inkSoft} style={{ marginTop: 26, lineHeight: 17 }}>
           Powiadomienia są opcjonalne. Margines nie wysyła ich częściej niż raz dziennie, a
           wszystkie możesz wyłączyć w każdej chwili.
         </Txt>
@@ -183,7 +202,7 @@ export default function SettingsScreen() {
         <Txt variant="title" style={{ marginBottom: 8 }}>
           {confirm === 'delete' ? 'Usunąć konto?' : 'Wylogować się?'}
         </Txt>
-        <Txt variant="body" color={colors.inkMid} style={{ marginBottom: 20 }}>
+        <Txt variant="body" color={c.inkMid} style={{ marginBottom: 20 }}>
           {confirm === 'delete'
             ? 'Usuniemy Twoje wpisy, bibliotekę i preferencje. Tej operacji nie można cofnąć.'
             : 'Wrócisz do ekranu powitalnego. Twoje półki i wpisy zostaną na urządzeniu.'}
@@ -210,23 +229,27 @@ export default function SettingsScreen() {
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  const c = useColors();
   return (
     <View style={{ marginTop: 22 }}>
-      <Txt variant="meta" color={colors.inkSoft} style={{ marginBottom: 8 }}>
+      <Txt variant="meta" color={c.inkSoft} style={{ marginBottom: 8 }}>
         {title.toLowerCase()}
       </Txt>
-      <View style={styles.section}>{children}</View>
+      <View style={[styles.section, { borderColor: c.rule }]}>
+        {children}
+      </View>
     </View>
   );
 }
 
 function Row({ label, value, last }: { label: string; value: string; last?: boolean }) {
+  const c = useColors();
   return (
-    <View style={[styles.row, last ? null : styles.rowBorder]}>
+    <View style={[styles.row, last ? null : { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.ruleSoft }]}>
       <Txt variant="label" style={{ flex: 1 }}>
         {label}
       </Txt>
-      <Txt variant="small" color={colors.inkSoft}>
+      <Txt variant="small" color={c.inkSoft}>
         {value}
       </Txt>
     </View>
@@ -234,10 +257,9 @@ function Row({ label, value, last }: { label: string; value: string; last?: bool
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.paper },
+  root: { flex: 1 },
   section: {
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.rule,
     borderRadius: 3,
     paddingHorizontal: 14,
   },
@@ -249,6 +271,5 @@ const styles = StyleSheet.create({
   },
   rowBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.ruleSoft,
   },
 });

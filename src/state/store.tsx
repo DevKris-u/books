@@ -48,9 +48,12 @@ export type Prefs = {
   importedTitles: string[];
 };
 
+export type Theme = 'light' | 'dark';
+
 export type State = {
   hydrated: boolean;
   onboarded: boolean;
+  theme: Theme;
   profile: { name: string; handle: string; joinedAt: string };
   prefs: Prefs;
   signals: Signals;
@@ -88,6 +91,7 @@ const initialSignals: Signals = {
 const initialState: State = {
   hydrated: false,
   onboarded: false,
+  theme: 'light',
   profile: { name: 'Ola', handle: 'ola.czyta', joinedAt: '2026-05-12' },
   prefs: { genres: [], moods: [], dailyGoal: null, dailyGoalUnit: 'pages', importedTitles: [] },
   signals: initialSignals,
@@ -132,6 +136,7 @@ type Action =
   | { type: 'WATCH_AD' }
   | { type: 'TOGGLE_NOTIFICATION'; key: NotificationKey }
   | { type: 'UPDATE_PROFILE'; name: string; handle?: string }
+  | { type: 'SET_THEME'; theme: Theme }
   | { type: 'ADD_BOOK'; book: Book }
   | { type: 'EXCLUDE_TITLE'; title: string }
   | { type: 'LOGOUT' }
@@ -412,6 +417,9 @@ function reducer(state: State, action: Action): State {
           handle: action.handle?.trim() || state.profile.handle,
         },
       };
+
+    case 'SET_THEME':
+      return { ...state, theme: action.theme };
 
     case 'ADD_BOOK':
       return {

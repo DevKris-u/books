@@ -5,7 +5,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Btn, Field, ScreenHeader, Txt } from '@/components/ui';
 import { useStore } from '@/state/store';
-import { colors, fonts } from '@/theme';
+import { fonts, useColors } from '@/theme';
 
 type Reason = 'copyright' | 'inappropriate' | 'other';
 
@@ -28,6 +28,7 @@ export default function ReportScreen() {
   const router = useRouter();
   const { fragment } = useLocalSearchParams<{ fragment?: string }>();
   const { state, dispatch } = useStore();
+  const c = useColors();
 
   const [reason, setReason] = useState<Reason | null>(null);
   const [details, setDetails] = useState('');
@@ -36,8 +37,10 @@ export default function ReportScreen() {
   const target = state.fragments.find((f) => f.id === fragment);
   const book = target ? state.books.find((b) => b.id === target.bookId) : undefined;
 
+  const styles = makeStyles(c);
+
   return (
-    <View style={{ flex: 1, backgroundColor: colors.paper, paddingTop: insets.top }}>
+    <View style={{ flex: 1, backgroundColor: c.paper, paddingTop: insets.top }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -55,9 +58,9 @@ export default function ReportScreen() {
           {done ? (
             <View style={{ paddingTop: 20 }}>
               <View style={styles.doneMark}>
-                <Feather name="shield" size={20} color={colors.onDark} />
+                <Feather name="shield" size={20} color={c.onDark} />
               </View>
-              <Txt variant="body" color={colors.inkMid}>
+              <Txt variant="body" color={c.inkMid}>
                 Wpis zniknął z feedu do czasu weryfikacji. Odpowiemy w ciągu 48 godzin — jeśli
                 zgłoszenie dotyczy praw autorskich, wstrzymujemy publikację wszystkich fragmentów
                 z tej książki.
@@ -75,7 +78,7 @@ export default function ReportScreen() {
             <>
               {target ? (
                 <View style={styles.preview}>
-                  <Txt variant="micro" color={colors.inkSoft}>
+                  <Txt variant="micro" color={c.inkSoft}>
                     {book?.title ?? 'książka'} · {target.curator.handle}
                   </Txt>
                   <Txt
@@ -83,7 +86,7 @@ export default function ReportScreen() {
                       fontFamily: fonts.read,
                       fontSize: 15,
                       lineHeight: 23,
-                      color: colors.ink,
+                      color: c.ink,
                       marginTop: 6,
                     }}
                     numberOfLines={4}
@@ -94,7 +97,7 @@ export default function ReportScreen() {
               ) : null}
 
               <View style={{ marginTop: 18 }}>
-                <Txt variant="label" color={colors.ink} style={{ fontSize: 16, marginBottom: 10 }}>
+                <Txt variant="label" color={c.ink} style={{ fontSize: 16, marginBottom: 10 }}>
                   Co zgłaszasz?
                 </Txt>
                 {REASONS.map((option) => {
@@ -108,23 +111,23 @@ export default function ReportScreen() {
                       style={[
                         styles.option,
                         {
-                          borderColor: active ? colors.ink : colors.rule,
-                          backgroundColor: active ? colors.forest : 'transparent',
+                          borderColor: active ? c.ink : c.rule,
+                          backgroundColor: active ? c.forest : 'transparent',
                         },
                       ]}
                     >
                       <View
-                        style={[styles.radio, { borderColor: active ? colors.onDark : colors.rule }]}
+                        style={[styles.radio, { borderColor: active ? c.onDark : c.rule }]}
                       >
                         {active ? <View style={styles.radioDot} /> : null}
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Txt variant="label" color={active ? colors.onDark : colors.ink}>
+                        <Txt variant="label" color={active ? c.onDark : c.ink}>
                           {option.label}
                         </Txt>
                         <Txt
                           variant="small"
-                          color={active ? colors.onDarkSoft : colors.inkSoft}
+                          color={active ? c.onDarkSoft : c.inkSoft}
                           style={{ marginTop: 2 }}
                         >
                           {option.hint}
@@ -149,8 +152,8 @@ export default function ReportScreen() {
               </View>
 
               <View style={styles.info}>
-                <Feather name="clock" size={14} color={colors.inkSoft} />
-                <Txt variant="small" color={colors.inkSoft} style={{ flex: 1 }}>
+                <Feather name="clock" size={14} color={c.inkSoft} />
+                <Txt variant="small" color={c.inkSoft} style={{ flex: 1 }}>
                   Po zgłoszeniu wpis znika z feedu automatycznie. Rejestr zgłoszeń i usunięć
                   prowadzimy w panelu administracyjnym.
                 </Txt>
@@ -171,8 +174,8 @@ export default function ReportScreen() {
                 accessibilityRole="button"
                 style={{ marginTop: 20, flexDirection: 'row', alignItems: 'center', gap: 8 }}
               >
-                <Feather name="briefcase" size={14} color={colors.inkMid} />
-                <Txt variant="small" color={colors.inkMid}>
+                <Feather name="briefcase" size={14} color={c.inkMid} />
+                <Txt variant="small" color={c.inkMid}>
                   Jesteś wydawcą? Zgłoś listę tytułów do wyłączenia
                 </Txt>
               </Pressable>
@@ -184,39 +187,41 @@ export default function ReportScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  preview: {
-    borderTopWidth: 1,
-    borderTopColor: colors.rule,
-    paddingTop: 14,
-    marginTop: 4,
-  },
-  option: {
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 3,
-    padding: 12,
-    marginBottom: 8,
-  },
-  radio: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  radioDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.claret },
-  info: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', marginTop: 18 },
-  doneMark: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: colors.forest,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-});
+function makeStyles(c: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    preview: {
+      borderTopWidth: 1,
+      borderTopColor: c.rule,
+      paddingTop: 14,
+      marginTop: 4,
+    },
+    option: {
+      flexDirection: 'row',
+      gap: 12,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderRadius: 3,
+      padding: 12,
+      marginBottom: 8,
+    },
+    radio: {
+      width: 18,
+      height: 18,
+      borderRadius: 9,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    radioDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: c.claret },
+    info: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', marginTop: 18 },
+    doneMark: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      backgroundColor: c.forest,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 16,
+    },
+  });
+}

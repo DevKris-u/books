@@ -30,7 +30,7 @@ import { tapLight } from '@/lib/haptics';
 import { normalizeText, plural } from '@/lib/utils';
 import { Candidate } from '@/lib/recommend';
 import { DAILY_POST_LIMIT, postsToday, useStore } from '@/state/store';
-import { colors, fonts } from '@/theme';
+import { colors, fonts, useColors } from '@/theme';
 
 const MAX_REACTION = 200;
 const MAX_FRAGMENT = 500;
@@ -44,6 +44,8 @@ export default function AddScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { state, dispatch, bookById } = useStore();
+  const c = useColors();
+  const styles = makeStyles(c);
 
   const [step, setStep] = useState(0);
   const [reaction, setReaction] = useState('');
@@ -246,7 +248,7 @@ export default function AddScreen() {
             <Feather
               name={published === 'live' ? 'check' : 'shield'}
               size={40}
-              color={colors.forest}
+              color={c.forest}
             />
           </Animated.View>
           <Txt style={styles.doneTitle}>
@@ -254,7 +256,7 @@ export default function AddScreen() {
               ? 'Twój fragment jest już w feedzie.'
               : 'Fragment trafił do moderacji.'}
           </Txt>
-          <Txt variant="body" color={colors.inkMid} style={{ marginTop: 10, maxWidth: 330 }}>
+          <Txt variant="body" color={c.inkMid} style={{ marginTop: 10, maxWidth: 330 }}>
             {published === 'live'
               ? 'Ktoś właśnie dostanie powód, żeby otworzyć tę książkę. Dziękujemy — to jest cała idea Marginesu.'
               : 'Sprawdzimy go w ciągu 48 godzin. To rzadkie, ale wolimy dmuchać na zimne przy treściach, które mogą kogoś skrzywdzić.'}
@@ -272,13 +274,13 @@ export default function AddScreen() {
     return (
       <View style={[styles.root, { paddingTop: insets.top + 20, paddingHorizontal: 22 }]}>
         <View style={{ flex: 1, justifyContent: 'center' }}>
-          <Txt variant="meta" color={colors.inkSoft}>
+          <Txt variant="meta" color={c.inkSoft}>
             dzienny limit
           </Txt>
           <Txt style={[styles.doneTitle, { marginTop: 8 }]}>
             Dodałeś dziś już 5 fragmentów.
           </Txt>
-          <Txt variant="body" color={colors.inkMid} style={{ marginTop: 10 }}>
+          <Txt variant="body" color={c.inkMid} style={{ marginTop: 10 }}>
             Wróć jutro — dbamy o jakość feedu. A tymczasem zobacz, co dodali inni.
           </Txt>
           <View style={{ marginTop: 28, gap: 10 }}>
@@ -308,12 +310,12 @@ export default function AddScreen() {
               accessibilityLabel="Wstecz"
               style={styles.backBtn}
             >
-              <Feather name="chevron-left" size={15} color={colors.inkMid} />
+              <Feather name="chevron-left" size={15} color={c.inkMid} />
             </Pressable>
           ) : null}
           <View style={{ width: '100%', alignItems: 'center' }}>
             <Txt style={[styles.title, { textAlign: 'center', width: '100%' }]}>Dodaj fragment</Txt>
-            <Txt variant="small" color={colors.inkSoft} style={{ marginTop: 4, textAlign: 'center', width: '100%' }}>
+            <Txt variant="small" color={c.inkSoft} style={{ marginTop: 4, textAlign: 'center', width: '100%' }}>
               {todayCount}/{DAILY_POST_LIMIT}
             </Txt>
           </View>
@@ -325,12 +327,12 @@ export default function AddScreen() {
               <View
                 style={{
                   height: 2,
-                  backgroundColor: index <= step ? colors.claret : colors.ruleSoft,
+                  backgroundColor: index <= step ? c.claret : c.ruleSoft,
                 }}
               />
               <Txt
                 variant="micro"
-                color={index === step ? colors.ink : colors.inkSoft}
+                color={index === step ? c.ink : c.inkSoft}
                 numberOfLines={1}
                 style={{ fontSize: 9.5 }}
               >
@@ -349,10 +351,10 @@ export default function AddScreen() {
         {step === 0 ? (
           <View style={{ gap: 20 }}>
             <View>
-              <Txt variant="label" color={colors.ink} style={{ fontSize: 16 }}>
+              <Txt variant="label" color={c.ink} style={{ fontSize: 16 }}>
                 Co czujesz? Co myślisz?
               </Txt>
-              <Txt variant="small" color={colors.inkSoft} style={{ marginTop: 4 }}>
+              <Txt variant="small" color={c.inkSoft} style={{ marginTop: 4 }}>
                 Twoja reakcja jest najważniejsza.
               </Txt>
             </View>
@@ -369,7 +371,7 @@ export default function AddScreen() {
             />
 
             <View>
-              <Txt variant="label" color={colors.ink} style={{ fontSize: 16 }}>
+              <Txt variant="label" color={c.ink} style={{ fontSize: 16 }}>
                 Po co cytujesz?
               </Txt>
               <View style={styles.purposeGrid}>
@@ -384,14 +386,14 @@ export default function AddScreen() {
                         style={[styles.purposeCard, active ? styles.purposeCardActive : null]}
                       >
                         <View style={styles.purposeHead}>
-                          <Txt variant="label" color={active ? colors.onDark : colors.ink}>
+                          <Txt variant="label" color={active ? c.onDark : c.ink}>
                             {option.label}
                           </Txt>
-                          {active ? <Feather name="check" size={13} color={colors.brass} /> : null}
+                          {active ? <Feather name="check" size={13} color={c.brass} /> : null}
                         </View>
                         <Txt
                           variant="small"
-                          color={active ? colors.onDarkSoft : colors.inkSoft}
+                          color={active ? c.onDarkSoft : c.inkSoft}
                           style={{ marginTop: 2 }}
                         >
                           {option.hint}
@@ -404,10 +406,10 @@ export default function AddScreen() {
             </View>
 
             <View>
-              <Txt variant="label" color={colors.ink} style={{ fontSize: 16 }}>
+              <Txt variant="label" color={c.ink} style={{ fontSize: 16 }}>
                 Emocje we fragmencie
               </Txt>
-              <Txt variant="small" color={colors.inkSoft} style={{ marginTop: 4, marginBottom: 10 }}>
+              <Txt variant="small" color={c.inkSoft} style={{ marginTop: 4, marginBottom: 10 }}>
                 Wybierz 1–3 tagi.
               </Txt>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -428,10 +430,10 @@ export default function AddScreen() {
         {step === 1 ? (
           <View style={{ gap: 18 }}>
             <View>
-              <Txt variant="label" color={colors.ink} style={{ fontSize: 16 }}>
+              <Txt variant="label" color={c.ink} style={{ fontSize: 16 }}>
                 Fragment, który Cię zainspirował
               </Txt>
-              <Txt variant="small" color={colors.inkSoft} style={{ marginTop: 4 }}>
+              <Txt variant="small" color={c.inkSoft} style={{ marginTop: 4 }}>
                 Maksymalnie 3–4 zdania.
               </Txt>
             </View>
@@ -448,8 +450,8 @@ export default function AddScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Usuń zdjęcie"
                 >
-                  <Feather name="x" size={13} color={colors.onDark} />
-                  <Txt variant="micro" color={colors.onDark}>
+                  <Feather name="x" size={13} color={c.onDark} />
+                  <Txt variant="micro" color={c.onDark}>
                     usuń zdjęcie
                   </Txt>
                 </Pressable>
@@ -476,15 +478,15 @@ export default function AddScreen() {
 
             {recognizing ? (
               <View style={styles.recognizing}>
-                <ActivityIndicator size="small" color={colors.claret} />
-                <Txt variant="small" color={colors.inkMid}>
+                <ActivityIndicator size="small" color={c.claret} />
+                <Txt variant="small" color={c.inkMid}>
                   Odczytujemy tekst ze zdjęcia…
                 </Txt>
               </View>
             ) : null}
 
             {pickerNote ? (
-              <Txt variant="small" color={colors.inkMid}>
+              <Txt variant="small" color={c.inkMid}>
                 {pickerNote}
               </Txt>
             ) : null}
@@ -519,8 +521,8 @@ export default function AddScreen() {
 
             <Rule />
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              <Feather name="info" size={14} color={colors.inkSoft} />
-              <Txt variant="small" color={colors.inkSoft} style={{ flex: 1 }}>
+              <Feather name="info" size={14} color={c.inkSoft} />
+              <Txt variant="small" color={c.inkSoft} style={{ flex: 1 }}>
                 Fragmenty z mową nienawiści i treści dla dorosłych bez oznaczenia nie przechodzą
                 automatycznej weryfikacji.
               </Txt>
@@ -531,10 +533,10 @@ export default function AddScreen() {
         {step === 2 ? (
           <View style={{ gap: 16 }}>
             <View>
-              <Txt variant="label" color={colors.ink} style={{ fontSize: 16 }}>
+              <Txt variant="label" color={c.ink} style={{ fontSize: 16 }}>
                 Jakiej książki?
               </Txt>
-              <Txt variant="small" color={colors.inkSoft} style={{ marginTop: 4 }}>
+              <Txt variant="small" color={c.inkSoft} style={{ marginTop: 4 }}>
                 Szukamy po tytule i autorze. Jeśli jej nie ma, dodaj ją — to 20 sekund.
               </Txt>
             </View>
@@ -556,20 +558,20 @@ export default function AddScreen() {
                   accessibilityState={{ selected: active }}
                   style={[
                     styles.bookRow,
-                    { borderColor: active ? colors.ink : colors.rule },
+                    { borderColor: active ? c.ink : c.rule },
                   ]}
                 >
                   <Cover book={item} width={36} />
                   <View style={{ flex: 1 }}>
-                    <Txt variant="label" numberOfLines={1} color={colors.ink}>
+                    <Txt variant="label" numberOfLines={1} color={c.ink}>
                       {item.title}
                     </Txt>
-                    <Txt variant="small" color={colors.inkSoft} numberOfLines={1}>
+                    <Txt variant="small" color={c.inkSoft} numberOfLines={1}>
                       {item.author}
                     </Txt>
                   </View>
                   {active ? (
-                    <Feather name="check" size={16} color={colors.claret} />
+                    <Feather name="check" size={16} color={c.claret} />
                   ) : (
                     <View
                       style={{
@@ -578,10 +580,10 @@ export default function AddScreen() {
                         borderRadius: 4,
                         backgroundColor:
                           item.source === 'licensed'
-                            ? colors.verified
+                            ? c.verified
                             : item.source === 'public'
                               ? '#3E5A78'
-                              : colors.inkSoft,
+                              : c.inkSoft,
                       }}
                     />
                   )}
@@ -601,7 +603,7 @@ export default function AddScreen() {
               />
             ) : (
               <View style={styles.newBook}>
-                <Txt variant="label" color={colors.ink} style={{ marginBottom: 12 }}>
+                <Txt variant="label" color={c.ink} style={{ marginBottom: 12 }}>
                   Nowa książka
                 </Txt>
                 <View style={{ gap: 12 }}>
@@ -624,7 +626,7 @@ export default function AddScreen() {
                     placeholder="np. Wydawnictwo Nurt"
                   />
                   <View>
-                    <Txt variant="label" color={colors.inkMid} style={{ marginBottom: 8 }}>
+                    <Txt variant="label" color={c.inkMid} style={{ marginBottom: 8 }}>
                       Gatunek
                     </Txt>
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
@@ -641,7 +643,7 @@ export default function AddScreen() {
                     </View>
                   </View>
                   {error ? (
-                    <Txt variant="small" color={colors.claret}>
+                    <Txt variant="small" color={c.claret}>
                       {error}
                     </Txt>
                   ) : null}
@@ -672,10 +674,10 @@ export default function AddScreen() {
         {step === 3 && draft ? (
           <View style={{ gap: 16 }}>
             <View>
-              <Txt variant="label" color={colors.ink} style={{ fontSize: 16 }}>
+              <Txt variant="label" color={c.ink} style={{ fontSize: 16 }}>
                 Tak będzie wyglądać w feedzie
               </Txt>
-              <Txt variant="small" color={colors.inkSoft} style={{ marginTop: 4 }}>
+              <Txt variant="small" color={c.inkSoft} style={{ marginTop: 4 }}>
                 Ostatnie spojrzenie przed publikacją.
               </Txt>
             </View>
@@ -685,9 +687,9 @@ export default function AddScreen() {
             </View>
 
             <View style={styles.metaBox}>
-              <Row label="Cel cytatu" value={PURPOSES.find((p) => p.value === purpose)?.label ?? '—'} />
-              <Row label="Książka" value={`${book?.title} · ${book?.author}`} />
-              <Row label="Tagi" value={tags.join(', ') || '—'} />
+              <Row label="Cel cytatu" value={PURPOSES.find((p) => p.value === purpose)?.label ?? '—'} styles={styles} />
+              <Row label="Książka" value={`${book?.title} · ${book?.author}`} styles={styles} />
+              <Row label="Tagi" value={tags.join(', ') || '—'} styles={styles} />
               <Row
                 label="Źródło"
                 value={
@@ -697,16 +699,17 @@ export default function AddScreen() {
                       ? 'domena publiczna'
                       : 'niezweryfikowane'
                 }
+                styles={styles}
               />
             </View>
 
             {error ? (
-              <Txt variant="small" color={colors.claret}>
+              <Txt variant="small" color={c.claret}>
                 {error}
               </Txt>
             ) : null}
 
-            <Txt variant="small" color={colors.inkSoft}>
+            <Txt variant="small" color={c.inkSoft}>
               Publikując, potwierdzasz, że cytujesz w celach analizy, krytyki, polemiki lub
               emocji. Dziś dodałeś {todayCount} z {DAILY_POST_LIMIT}{' '}
               {plural(DAILY_POST_LIMIT, 'fragmentu', 'fragmentów', 'fragmentów')}.
@@ -737,13 +740,13 @@ export default function AddScreen() {
             pressed && canNext ? styles.nextBtnPressed : null,
           ]}
         >
-          <Txt variant="label" color={canNext ? colors.onDark : colors.inkSoft} style={{ fontSize: 15 }}>
+          <Txt variant="label" color={canNext ? c.onDark : c.inkSoft} style={{ fontSize: 15 }}>
             {step === 3 ? 'Opublikuj' : 'Dalej'}
           </Txt>
           <Feather
             name={step === 3 ? 'check' : 'arrow-right'}
             size={16}
-            color={canNext ? colors.onDark : colors.inkSoft}
+            color={canNext ? c.onDark : c.inkSoft}
             style={{ marginLeft: 8 }}
           />
         </Pressable>
@@ -752,146 +755,149 @@ export default function AddScreen() {
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value, styles }: { label: string; value: string; styles: ReturnType<typeof makeStyles> }) {
+  const c = useColors();
   return (
     <View style={styles.metaRow}>
-      <Txt variant="meta" color={colors.inkSoft}>
+      <Txt variant="meta" color={c.inkSoft}>
         {label}
       </Txt>
-      <Txt variant="small" color={colors.ink} style={{ flex: 1, textAlign: 'right' }}>
+      <Txt variant="small" color={c.ink} style={{ flex: 1, textAlign: 'right' }}>
         {value}
       </Txt>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.paper },
-  header: {
-    position: 'relative',
-    paddingTop: 10,
-    paddingBottom: 12,
-  },
-  backBtn: {
-    position: 'absolute',
-    left: 22,
-    top: 10,
-    padding: 6,
-  },
-  title: {
-    fontFamily: fonts.semi,
-    fontSize: 24,
-    lineHeight: 30,
-    color: colors.ink,
-    letterSpacing: -0.2,
-  },
-  progress: { flexDirection: 'row', gap: 8 },
-  purposeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 10,
-    marginHorizontal: -4,
-  },
-  purposeCell: {
-    width: '50%',
-    paddingHorizontal: 4,
-    paddingBottom: 8,
-  },
-  purposeCard: {
-    flexGrow: 1,
-    borderWidth: 1,
-    borderColor: colors.rule,
-    borderRadius: 10,
-    padding: 10,
-  },
-  purposeCardActive: {
-    backgroundColor: colors.forest,
-    borderColor: colors.forest,
-  },
-  purposeHead: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 6,
-  },
-  photo: { width: '100%', height: 170, borderRadius: 3 },
-  removePhoto: {
-    position: 'absolute',
-    right: 8,
-    bottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: 'rgba(11,36,30,0.8)',
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 3,
-  },
-  recognizing: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  bookRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderWidth: 1,
-    borderRadius: 3,
-    padding: 10,
-  },
-  newBook: {
-    borderWidth: 1,
-    borderColor: colors.rule,
-    borderRadius: 3,
-    padding: 14,
-    backgroundColor: colors.paperSoft,
-  },
-  metaBox: {
-    borderTopWidth: 1,
-    borderTopColor: colors.rule,
-    paddingTop: 10,
-    gap: 8,
-  },
-  metaRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-  footer: {
-    paddingHorizontal: 22,
-    paddingTop: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.ruleSoft,
-    backgroundColor: colors.paper,
-  },
-  nextBtn: {
-    height: 56,
-    borderRadius: 28,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  nextBtnReady: {
-    backgroundColor: colors.forest,
-    ...(Platform.select({
-      web: { boxShadow: '0 10px 26px rgba(11,36,30,0.25)' } as object,
-      default: {
-        shadowColor: colors.forestDeep,
-        shadowOpacity: 0.28,
-        shadowRadius: 16,
-        shadowOffset: { width: 0, height: 10 },
-        elevation: 6,
-      },
-    }) ?? {}),
-  },
-  nextBtnIdle: {
-    backgroundColor: 'transparent',
-  },
-  nextBtnPressed: {
-    opacity: 0.92,
-    transform: [{ translateY: 1 }],
-  },
-  doneMark: {
-    marginBottom: 24,
-  },
-  doneTitle: {
-    fontFamily: fonts.semi,
-    fontSize: 26,
-    lineHeight: 33,
-    color: colors.ink,
-    letterSpacing: -0.3,
-  },
-});
+function makeStyles(c: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.paper },
+    header: {
+      position: 'relative',
+      paddingTop: 10,
+      paddingBottom: 12,
+    },
+    backBtn: {
+      position: 'absolute',
+      left: 22,
+      top: 10,
+      padding: 6,
+    },
+    title: {
+      fontFamily: fonts.semi,
+      fontSize: 24,
+      lineHeight: 30,
+      color: c.ink,
+      letterSpacing: -0.2,
+    },
+    progress: { flexDirection: 'row', gap: 8 },
+    purposeGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginTop: 10,
+      marginHorizontal: -4,
+    },
+    purposeCell: {
+      width: '50%',
+      paddingHorizontal: 4,
+      paddingBottom: 8,
+    },
+    purposeCard: {
+      flexGrow: 1,
+      borderWidth: 1,
+      borderColor: c.rule,
+      borderRadius: 10,
+      padding: 10,
+    },
+    purposeCardActive: {
+      backgroundColor: c.forest,
+      borderColor: c.forest,
+    },
+    purposeHead: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 6,
+    },
+    photo: { width: '100%', height: 170, borderRadius: 3 },
+    removePhoto: {
+      position: 'absolute',
+      right: 8,
+      bottom: 8,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      backgroundColor: 'rgba(11,36,30,0.8)',
+      paddingHorizontal: 8,
+      paddingVertical: 5,
+      borderRadius: 3,
+    },
+    recognizing: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    bookRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      borderWidth: 1,
+      borderRadius: 3,
+      padding: 10,
+    },
+    newBook: {
+      borderWidth: 1,
+      borderColor: c.rule,
+      borderRadius: 3,
+      padding: 14,
+      backgroundColor: c.paperSoft,
+    },
+    metaBox: {
+      borderTopWidth: 1,
+      borderTopColor: c.rule,
+      paddingTop: 10,
+      gap: 8,
+    },
+    metaRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+    footer: {
+      paddingHorizontal: 22,
+      paddingTop: 12,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: c.ruleSoft,
+      backgroundColor: c.paper,
+    },
+    nextBtn: {
+      height: 56,
+      borderRadius: 28,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    nextBtnReady: {
+      backgroundColor: c.forest,
+      ...(Platform.select({
+        web: { boxShadow: '0 10px 26px rgba(11,36,30,0.25)' } as object,
+        default: {
+          shadowColor: c.forestDeep,
+          shadowOpacity: 0.28,
+          shadowRadius: 16,
+          shadowOffset: { width: 0, height: 10 },
+          elevation: 6,
+        },
+      }) ?? {}),
+    },
+    nextBtnIdle: {
+      backgroundColor: 'transparent',
+    },
+    nextBtnPressed: {
+      opacity: 0.92,
+      transform: [{ translateY: 1 }],
+    },
+    doneMark: {
+      marginBottom: 24,
+    },
+    doneTitle: {
+      fontFamily: fonts.semi,
+      fontSize: 26,
+      lineHeight: 33,
+      color: c.ink,
+      letterSpacing: -0.3,
+    },
+  });
+}

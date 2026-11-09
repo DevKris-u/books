@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Book, Source } from '@/data/types';
-import { colors, fonts, radius, shadow, space, type } from '@/theme';
+import { fonts, radius, shadow, space, type, useColors } from '@/theme';
 import { tapLight } from '@/lib/haptics';
 
 /* --------------------------------- text --------------------------------- */
@@ -58,14 +58,15 @@ export function Btn({
   style?: StyleProp<ViewStyle>;
   full?: boolean;
 }) {
+  const c = useColors();
   const palette: Record<ButtonVariant, { bg: string; fg: string; border?: string }> = {
-    primary: { bg: colors.forest, fg: colors.onDark },
-    accent: { bg: colors.claret, fg: colors.onDark },
-    ghost: { bg: 'transparent', fg: colors.ink, border: colors.rule },
-    ghostLight: { bg: 'transparent', fg: colors.onDark, border: 'rgba(242,233,218,0.42)' },
-    brass: { bg: colors.brassTint, fg: colors.ink, border: 'rgba(168,127,63,0.5)' },
-    quiet: { bg: colors.paperDeep, fg: colors.ink },
-    paper: { bg: colors.paper, fg: colors.ink },
+    primary: { bg: c.forest, fg: c.onDark },
+    accent: { bg: c.claret, fg: c.onDark },
+    ghost: { bg: 'transparent', fg: c.ink, border: c.rule },
+    ghostLight: { bg: 'transparent', fg: c.onDark, border: 'rgba(242,233,218,0.42)' },
+    brass: { bg: c.brassTint, fg: c.ink, border: 'rgba(168,127,63,0.5)' },
+    quiet: { bg: c.paperDeep, fg: c.ink },
+    paper: { bg: c.paper, fg: c.ink },
   };
   const tone = palette[variant];
 
@@ -106,7 +107,7 @@ export function IconBtn({
   name,
   onPress,
   size = 44,
-  color = colors.ink,
+  color = undefined,
   label,
   bordered = true,
   style,
@@ -119,6 +120,9 @@ export function IconBtn({
   bordered?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
+  const c = useColors();
+  const iconColor = color ?? c.ink;
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -136,14 +140,14 @@ export function IconBtn({
           alignItems: 'center',
           justifyContent: 'center',
           borderWidth: bordered ? 1 : 0,
-          borderColor: colors.rule,
-          backgroundColor: bordered ? colors.paperSoft : 'transparent',
+          borderColor: c.rule,
+          backgroundColor: bordered ? c.paperSoft : 'transparent',
           opacity: pressed ? 0.7 : 1,
         },
         style,
       ]}
     >
-      <Feather name={name} size={Math.round(size * 0.4)} color={color} />
+      <Feather name={name} size={Math.round(size * 0.4)} color={iconColor} />
     </Pressable>
   );
 }
@@ -151,24 +155,35 @@ export function IconBtn({
 /* --------------------------------- chrome -------------------------------- */
 
 export function Rule({ style, color }: { style?: StyleProp<ViewStyle>; color?: string }) {
+  const c = useColors();
   return (
     <View
       style={[
-        { height: StyleSheet.hairlineWidth, backgroundColor: color ?? colors.rule },
+        { height: StyleSheet.hairlineWidth, backgroundColor: color ?? c.rule },
         style,
       ]}
     />
   );
 }
 
-const sourceTone: Record<Source, string> = {
-  licensed: colors.verified,
+const sourceToneLight: Record<Source, string> = {
+  licensed: '#16A34A',
   public: '#3E5A78',
-  unverified: colors.inkSoft,
-  excluded: colors.danger,
+  unverified: '#A3AE9C',
+  excluded: '#DC2626',
+};
+
+const sourceToneDark: Record<Source, string> = {
+  licensed: '#4ADE80',
+  public: '#3E5A78',
+  unverified: '#A4AD9E',
+  excluded: '#F87171',
 };
 
 export function SourceMark({ source, showLabel = false }: { source: Source; showLabel?: boolean }) {
+  const c = useColors();
+  const sourceTone = c.background === '#F7F8F6' ? sourceToneLight : sourceToneDark;
+
   const label =
     source === 'licensed'
       ? 'źródło licencjonowane'
@@ -188,7 +203,7 @@ export function SourceMark({ source, showLabel = false }: { source: Source; show
         }}
       />
       {showLabel ? (
-        <Txt variant="meta" color={colors.inkSoft}>
+        <Txt variant="meta" color={c.inkSoft}>
           {label}
         </Txt>
       ) : null}
@@ -197,6 +212,7 @@ export function SourceMark({ source, showLabel = false }: { source: Source; show
 }
 
 export function Cover({ book, width = 44 }: { book?: Book; width?: number }) {
+  const c = useColors();
   const height = Math.round(width * 1.46);
   if (!book) {
     return (
@@ -205,14 +221,14 @@ export function Cover({ book, width = 44 }: { book?: Book; width?: number }) {
           width,
           height,
           borderWidth: 1,
-          borderColor: colors.rule,
+          borderColor: c.rule,
           borderStyle: 'dashed',
           borderRadius: 2,
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <Feather name="book" size={width * 0.4} color={colors.inkSoft} />
+        <Feather name="book" size={width * 0.4} color={c.inkSoft} />
       </View>
     );
   }
@@ -242,7 +258,7 @@ export function Cover({ book, width = 44 }: { book?: Book; width?: number }) {
           <>
             <Txt
               variant="meta"
-              color={colors.onDark}
+              color={c.onDark}
               numberOfLines={3}
               style={{
                 fontSize: Math.max(7, width * 0.155),
@@ -283,11 +299,12 @@ export function Pill({
   tone?: 'default' | 'brass' | 'claret' | 'forest';
   small?: boolean;
 }) {
+  const c = useColors();
   const tones = {
-    default: { border: colors.rule, fg: colors.inkMid, bg: 'transparent' },
-    brass: { border: 'rgba(168,127,63,0.55)', fg: '#6E5224', bg: colors.brassTint },
-    claret: { border: 'rgba(142,47,54,0.35)', fg: colors.claret, bg: colors.claretTint },
-    forest: { border: colors.forest, fg: colors.onDark, bg: colors.forest },
+    default: { border: c.rule, fg: c.inkMid, bg: 'transparent' },
+    brass: { border: 'rgba(168,127,63,0.55)', fg: '#6E5224', bg: c.brassTint },
+    claret: { border: 'rgba(142,47,54,0.35)', fg: c.claret, bg: c.claretTint },
+    forest: { border: c.forest, fg: c.onDark, bg: c.forest },
   }[tone];
   const content = (
     <Txt
@@ -339,11 +356,12 @@ export function Screen({
   style?: StyleProp<ViewStyle>;
   padded?: boolean;
 }) {
+  const c = useColors();
   const insets = useSafeAreaInsets();
   return (
     <View
       style={[
-        { flex: 1, backgroundColor: colors.paper, paddingTop: insets.top },
+        { flex: 1, backgroundColor: c.paper, paddingTop: insets.top },
         padded ? { paddingHorizontal: space.page } : null,
         style,
       ]}
@@ -366,6 +384,7 @@ export function ScreenHeader({
   right?: React.ReactNode;
   large?: boolean;
 }) {
+  const c = useColors();
   return (
     <View style={{ paddingTop: 6, paddingBottom: 10 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -375,7 +394,7 @@ export function ScreenHeader({
         <View style={{ flex: 1 }}>
           <Txt variant={large ? 'display' : 'title'}>{title}</Txt>
           {subtitle ? (
-            <Txt variant="small" color={colors.inkSoft} style={{ marginTop: 4 }}>
+            <Txt variant="small" color={c.inkSoft} style={{ marginTop: 4 }}>
               {subtitle}
             </Txt>
           ) : null}
@@ -397,9 +416,10 @@ export function ScrollScreen({
   padded?: boolean;
   contentStyle?: StyleProp<ViewStyle>;
 }) {
+  const c = useColors();
   const insets = useSafeAreaInsets();
   return (
-    <View style={{ flex: 1, backgroundColor: colors.paper, paddingTop: insets.top }}>
+    <View style={{ flex: 1, backgroundColor: c.paper, paddingTop: insets.top }}>
       {header ? <View style={padded ? { paddingHorizontal: space.page } : null}>{header}</View> : null}
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -431,6 +451,7 @@ export function Sheet({
   title?: string;
   children: React.ReactNode;
 }) {
+  const c = useColors();
   const progress = useRef(new Animated.Value(0)).current;
   const [mounted, setMounted] = useState(visible);
 
@@ -455,6 +476,8 @@ export function Sheet({
 
   if (!mounted) return null;
 
+  const ss = sheetStyles(c);
+
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <Animated.View
@@ -469,7 +492,7 @@ export function Sheet({
       </Animated.View>
       <Animated.View
         style={[
-          styles.sheet,
+          ss.sheet,
           {
             transform: [
               {
@@ -482,7 +505,7 @@ export function Sheet({
           },
         ]}
       >
-        <View style={styles.grabber} />
+        <View style={ss.grabber} />
         {title ? (
           <Txt variant="title" style={{ marginBottom: 14 }}>
             {title}
@@ -505,6 +528,7 @@ export function Toggle({
   onChange: (next: boolean) => void;
   label: string;
 }) {
+  const c = useColors();
   return (
     <Pressable
       accessibilityRole="switch"
@@ -519,9 +543,9 @@ export function Toggle({
         height: 27,
         borderRadius: 14,
         padding: 3,
-        backgroundColor: value ? colors.forest : colors.paperDeep,
+        backgroundColor: value ? c.forest : c.paperDeep,
         borderWidth: 1,
-        borderColor: value ? colors.forest : colors.rule,
+        borderColor: value ? c.forest : c.rule,
         alignItems: value ? 'flex-end' : 'flex-start',
       }}
     >
@@ -530,7 +554,7 @@ export function Toggle({
           width: 21,
           height: 19,
           borderRadius: 10,
-          backgroundColor: value ? colors.paperSoft : colors.paperSoft,
+          backgroundColor: value ? c.paperSoft : c.paperSoft,
         }}
       />
     </Pressable>
@@ -546,6 +570,7 @@ export function Stars({
   onChange?: (next: number) => void;
   size?: number;
 }) {
+  const c = useColors();
   return (
     <View style={{ flexDirection: 'row', gap: 6 }}>
       {[1, 2, 3, 4, 5].map((n) => (
@@ -562,7 +587,7 @@ export function Stars({
           <Feather
             name="star"
             size={size}
-            color={n <= value ? colors.brass : colors.rule}
+            color={n <= value ? c.brass : c.rule}
           />
         </Pressable>
       ))}
@@ -584,7 +609,9 @@ export function Field({
   counter?: string;
   style?: StyleProp<TextStyle>;
 }) {
+  const c = useColors();
   const [focused, setFocused] = useState(false);
+  const is = inputStyles(c);
   return (
     <View>
       {label ? (
@@ -595,11 +622,11 @@ export function Field({
             marginBottom: 7,
           }}
         >
-          <Txt variant="label" color={colors.inkMid}>
+          <Txt variant="label" color={c.inkMid}>
             {label}
           </Txt>
           {counter ? (
-            <Txt variant="meta" color={colors.inkSoft}>
+            <Txt variant="meta" color={c.inkSoft}>
               {counter}
             </Txt>
           ) : null}
@@ -607,25 +634,25 @@ export function Field({
       ) : null}
       <TextInput
         placeholderTextColor="rgba(135,121,100,0.75)"
-        selectionColor={colors.claret}
+        selectionColor={c.claret}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         style={[
-          styles.input,
+          is.input,
           {
-            borderColor: error ? colors.claret : focused ? colors.ink : colors.rule,
-            backgroundColor: colors.paperSoft,
+            borderColor: error ? c.claret : focused ? c.ink : c.rule,
+            backgroundColor: c.paperSoft,
           },
           style,
         ]}
         {...rest}
       />
       {error ? (
-        <Txt variant="small" color={colors.claret} style={{ marginTop: 6 }}>
+        <Txt variant="small" color={c.claret} style={{ marginTop: 6 }}>
           {error}
         </Txt>
       ) : hint ? (
-        <Txt variant="small" color={colors.inkSoft} style={{ marginTop: 6 }}>
+        <Txt variant="small" color={c.inkSoft} style={{ marginTop: 6 }}>
           {hint}
         </Txt>
       ) : null}
@@ -634,11 +661,12 @@ export function Field({
 }
 
 export function Loading({ label }: { label?: string }) {
+  const c = useColors();
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-      <ActivityIndicator color={colors.claret} />
+      <ActivityIndicator color={c.claret} />
       {label ? (
-        <Txt variant="small" color={colors.inkSoft}>
+        <Txt variant="small" color={c.inkSoft}>
           {label}
         </Txt>
       ) : null}
@@ -659,15 +687,16 @@ export function EmptyState({
   icon?: keyof typeof Feather.glyphMap;
   centered?: boolean;
 }) {
+  const c = useColors();
   return (
     <View style={[styles.empty, centered ? styles.emptyCentered : null]}>
-      <Feather name={icon} size={30} color={colors.inkMid} style={{ marginBottom: 16 }} />
+      <Feather name={icon} size={30} color={c.inkMid} style={{ marginBottom: 16 }} />
       <Txt variant="title" align={centered ? 'center' : 'left'} style={{ marginBottom: 8 }}>
         {title}
       </Txt>
       <Txt
         variant="body"
-        color={colors.inkMid}
+        color={c.inkMid}
         align={centered ? 'center' : 'left'}
         style={{ marginBottom: 20, maxWidth: 320 }}
       >
@@ -678,7 +707,9 @@ export function EmptyState({
   );
 }
 
-const styles = StyleSheet.create({
+/* --------------------------------- styles --------------------------------- */
+
+const staticStyles = StyleSheet.create({
   empty: {
     alignItems: 'flex-start',
     paddingVertical: 28,
@@ -699,39 +730,56 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sheet: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: colors.paper,
-    borderTopLeftRadius: radius.sheet,
-    borderTopRightRadius: radius.sheet,
-    paddingHorizontal: space.page,
-    paddingTop: 10,
-    paddingBottom: 26,
-    borderTopWidth: 1,
-    borderColor: colors.rule,
-    ...(shadow as object),
-    maxHeight: '88%',
-  },
-  grabber: {
-    alignSelf: 'center',
-    width: 38,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: colors.rule,
-    marginBottom: 16,
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: 3,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontFamily: fonts.read,
-    fontSize: 16,
-    lineHeight: 23,
-    color: colors.ink,
-    minHeight: 48,
-  },
 });
+
+export { staticStyles };
+
+function sheetStyles(c: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    sheet: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: c.paper,
+      borderTopLeftRadius: radius.sheet,
+      borderTopRightRadius: radius.sheet,
+      paddingHorizontal: space.page,
+      paddingTop: 10,
+      paddingBottom: 26,
+      borderTopWidth: 1,
+      borderColor: c.rule,
+      ...(shadow as object),
+      maxHeight: '88%',
+    },
+    grabber: {
+      alignSelf: 'center',
+      width: 38,
+      height: 3,
+      borderRadius: 2,
+      backgroundColor: c.rule,
+      marginBottom: 16,
+    },
+  });
+}
+
+function inputStyles(c: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    input: {
+      borderWidth: 1,
+      borderRadius: 3,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      fontFamily: fonts.read,
+      fontSize: 16,
+      lineHeight: 23,
+      color: c.ink,
+      minHeight: 48,
+    },
+  });
+}
+
+export { sheetStyles, inputStyles };
+
+// Alias staticStyles as styles for backward compatibility
+export const styles = staticStyles;

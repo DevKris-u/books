@@ -3,10 +3,11 @@ import { Tabs } from 'expo-router/js-tabs';
 import React from 'react';
 import { MarginesTabBar } from '@/components/TabBar';
 import { useStore } from '@/state/store';
-import { colors } from '@/theme';
+import { useColors } from '@/theme';
 
 export default function TabsLayout() {
   const { state } = useStore();
+  const c = useColors();
 
   if (!state.onboarded) return <Redirect href="/onboarding" />;
 
@@ -15,7 +16,7 @@ export default function TabsLayout() {
       tabBar={(props) => <MarginesTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        sceneStyle: { backgroundColor: colors.paper },
+        sceneStyle: { backgroundColor: c.paper },
       }}
     >
       <Tabs.Screen name="index" options={{ title: 'Feed' }} />

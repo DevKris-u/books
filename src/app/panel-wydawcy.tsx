@@ -5,12 +5,13 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 're
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Btn, Field, Rule, ScreenHeader, Txt } from '@/components/ui';
 import { useStore } from '@/state/store';
-import { colors, fonts } from '@/theme';
+import { fonts, useColors } from '@/theme';
 
 export default function PublisherPanel() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { state, dispatch } = useStore();
+  const c = useColors();
   const [input, setInput] = useState('');
   const [report, setReport] = useState<number | null>(null);
 
@@ -27,8 +28,10 @@ export default function PublisherPanel() {
     setInput('');
   };
 
+  const styles = makeStyles(c);
+
   return (
-    <View style={{ flex: 1, backgroundColor: colors.paper, paddingTop: insets.top }}>
+    <View style={{ flex: 1, backgroundColor: c.paper, paddingTop: insets.top }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -43,7 +46,7 @@ export default function PublisherPanel() {
             onBack={() => router.back()}
           />
 
-          <Txt variant="body" color={colors.inkMid}>
+          <Txt variant="body" color={c.inkMid}>
             Wklej tytuły lub nazwiska autorów — po jednym w linii. Wszystkie fragmenty z tych
             książek znikną z feedu natychmiast, a książki dostaną status „wyłączona”. Zgłoszenie
             trafia do rejestru i jest potwierdzane w ciągu 48 godzin.
@@ -69,8 +72,8 @@ export default function PublisherPanel() {
 
           {report !== null ? (
             <View style={styles.notice}>
-              <Feather name="check" size={14} color={colors.verified} />
-              <Txt variant="small" color={colors.inkMid} style={{ flex: 1 }}>
+              <Feather name="check" size={14} color={c.verified} />
+              <Txt variant="small" color={c.inkMid} style={{ flex: 1 }}>
                 Zgłoszenie przyjęte. Wyłączyliśmy dopasowane tytuły i wszystkie ich fragmenty.
               </Txt>
             </View>
@@ -79,12 +82,12 @@ export default function PublisherPanel() {
           <View style={{ marginTop: 26 }}>
             <View style={styles.sectionHead}>
               <Txt style={styles.sectionTitle}>Wyłączone w tej sesji</Txt>
-              <Txt variant="meta" color={colors.inkSoft}>
+              <Txt variant="meta" color={c.inkSoft}>
                 {excluded.length}
               </Txt>
             </View>
             {excluded.length === 0 ? (
-              <Txt variant="small" color={colors.inkSoft} style={{ marginTop: 10 }}>
+              <Txt variant="small" color={c.inkSoft} style={{ marginTop: 10 }}>
                 Nic jeszcze nie zostało wyłączone.
               </Txt>
             ) : (
@@ -94,11 +97,11 @@ export default function PublisherPanel() {
                   <View style={styles.row}>
                     <View style={{ flex: 1 }}>
                       <Txt variant="label">{book.title}</Txt>
-                      <Txt variant="small" color={colors.inkSoft}>
+                      <Txt variant="small" color={c.inkSoft}>
                         {book.author}
                       </Txt>
                     </View>
-                    <Txt variant="micro" color={colors.claret}>
+                    <Txt variant="micro" color={c.claret}>
                       wyłączona
                     </Txt>
                   </View>
@@ -107,7 +110,7 @@ export default function PublisherPanel() {
             )}
           </View>
 
-          <Txt variant="micro" color={colors.inkSoft} style={{ marginTop: 26, lineHeight: 17 }}>
+          <Txt variant="micro" color={c.inkSoft} style={{ marginTop: 26, lineHeight: 17 }}>
             Rejestr zgłoszeń i usunięć (kto, kiedy, czego dotyczyło) jest dostępny w panelu
             administracyjnym. Ten ekran jest prototypem — w wersji produkcyjnej wymaga
             zalogowania na konto wydawcy.
@@ -118,24 +121,26 @@ export default function PublisherPanel() {
   );
 }
 
-const styles = StyleSheet.create({
-  notice: {
-    flexDirection: 'row',
-    gap: 10,
-    alignItems: 'center',
-    marginTop: 14,
-    backgroundColor: colors.forestTint,
-    padding: 12,
-    borderRadius: 3,
-  },
-  sectionHead: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.rule,
-    paddingBottom: 8,
-  },
-  sectionTitle: { fontFamily: fonts.semi, fontSize: 19, color: colors.ink },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13 },
-});
+function makeStyles(c: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    notice: {
+      flexDirection: 'row',
+      gap: 10,
+      alignItems: 'center',
+      marginTop: 14,
+      backgroundColor: c.forestTint,
+      padding: 12,
+      borderRadius: 3,
+    },
+    sectionHead: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      justifyContent: 'space-between',
+      borderBottomWidth: 1,
+      borderBottomColor: c.rule,
+      paddingBottom: 8,
+    },
+    sectionTitle: { fontFamily: fonts.semi, fontSize: 19, color: c.ink },
+    row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13 },
+  });
+}

@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Btn, Pill, Txt } from '@/components/ui';
 import { GENRES, Genre, MOODS, Mood } from '@/data/types';
 import { useStore } from '@/state/store';
-import { colors, fonts } from '@/theme';
+import { fonts, useColors } from '@/theme';
 
 const STEPS = 5;
 
@@ -23,6 +23,7 @@ export default function Onboarding() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { dispatch } = useStore();
+  const c = useColors();
 
   const [step, setStep] = useState(0);
   const [genres, setGenres] = useState<Genre[]>([]);
@@ -72,6 +73,8 @@ export default function Onboarding() {
     router.replace('/');
   };
 
+  const styles = makeStyles(c);
+
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <StatusBar style="light" />
@@ -84,7 +87,7 @@ export default function Onboarding() {
             hitSlop={10}
             style={{ padding: 4 }}
           >
-            <Feather name="chevron-left" size={22} color={colors.onDark} />
+            <Feather name="chevron-left" size={22} color={c.onDark} />
           </Pressable>
         ) : (
           <Txt style={styles.wordmark}>margines</Txt>
@@ -96,12 +99,12 @@ export default function Onboarding() {
               key={index}
               style={[
                 styles.mark,
-                { backgroundColor: index <= step ? colors.paper : 'rgba(242,233,218,0.22)' },
+                { backgroundColor: index <= step ? c.paper : 'rgba(242,233,218,0.22)' },
               ]}
             />
           ))}
         </View>
-        <Txt variant="micro" color={colors.onDarkSoft}>
+        <Txt variant="micro" color={c.onDarkSoft}>
           {step + 1}/{STEPS}
         </Txt>
       </View>
@@ -115,10 +118,10 @@ export default function Onboarding() {
           contentContainerStyle={{ paddingBottom: 24 }}
           keyboardShouldPersistTaps="handled"
         >
-          {step === 0 ? <Welcome /> : null}
+          {step === 0 ? <Welcome colors={c} styles={styles} /> : null}
 
           {step === 1 ? (
-            <Step
+            <Step colors={c} styles={styles}
               title="Co Cię wciąga?"
               lead="Wybierz gatunki, po które sięgasz najchętniej."
             >
@@ -129,6 +132,8 @@ export default function Onboarding() {
                     label={genre.label}
                     active={genres.includes(genre.value)}
                     onPress={() => setGenres((current) => toggle(current, genre.value))}
+                    colors={c}
+                    styles={styles}
                   />
                 ))}
               </View>
@@ -136,7 +141,7 @@ export default function Onboarding() {
           ) : null}
 
           {step === 2 ? (
-            <Step
+            <Step colors={c} styles={styles}
               title="Po co czytasz?"
               lead="Fragmenty dobieramy też po emocji. Wybierz to, czego szukasz w książkach"
             >
@@ -147,6 +152,8 @@ export default function Onboarding() {
                     label={mood.label}
                     active={moods.includes(mood.value)}
                     onPress={() => setMoods((current) => toggle(current, mood.value))}
+                    colors={c}
+                    styles={styles}
                   />
                 ))}
               </View>
@@ -154,11 +161,11 @@ export default function Onboarding() {
           ) : null}
 
           {step === 3 ? (
-            <Step
+            <Step colors={c} styles={styles}
               title="Twoja lista"
               lead="Masz już listę książek, które chcesz przeczytać lub przeczytałeś ?"
             >
-              <Txt variant="label" color={colors.onDark} style={{ marginBottom: 8 }}>
+              <Txt variant="label" color={c.onDark} style={{ marginBottom: 8 }}>
                 Wklej tytuły, każdy w nowej linii
               </Txt>
               <TextInput
@@ -180,7 +187,7 @@ export default function Onboarding() {
 
               {titles.length ? (
                 <View style={{ marginTop: 18 }}>
-                  <Txt variant="meta" color={colors.onDarkSoft} style={{ marginBottom: 8 }}>
+                  <Txt variant="meta" color={c.onDarkSoft} style={{ marginBottom: 8 }}>
                     na liście: {titles.length}
                   </Txt>
                   <View style={styles.grid}>
@@ -192,10 +199,10 @@ export default function Onboarding() {
                         accessibilityRole="button"
                         accessibilityLabel={`Usuń ${title} z listy`}
                       >
-                        <Txt variant="small" color={colors.onDark} numberOfLines={1}>
+                        <Txt variant="small" color={c.onDark} numberOfLines={1}>
                           {title}
                         </Txt>
-                        <Feather name="x" size={12} color={colors.onDarkSoft} />
+                        <Feather name="x" size={12} color={c.onDarkSoft} />
                       </Pressable>
                     ))}
                   </View>
@@ -206,11 +213,11 @@ export default function Onboarding() {
           ) : null}
 
           {step === 4 ? (
-            <Step
+            <Step colors={c} styles={styles}
               title="Ile chcesz czytać?"
               lead="Cel pomaga nam przypominać ci o czytaniu. Nie musisz go ustawiać."
             >
-              <Txt variant="meta" color={colors.onDarkSoft} style={{ marginBottom: 8 }}>
+              <Txt variant="meta" color={c.onDarkSoft} style={{ marginBottom: 8 }}>
                 strony dziennie
               </Txt>
               <View style={styles.grid}>
@@ -223,11 +230,13 @@ export default function Onboarding() {
                       setUnit('pages');
                       setGoal(value);
                     }}
+                    colors={c}
+                    styles={styles}
                   />
                 ))}
               </View>
 
-              <Txt variant="meta" color={colors.onDarkSoft} style={{ marginVertical: 8 }}>
+              <Txt variant="meta" color={c.onDarkSoft} style={{ marginVertical: 8 }}>
                 albo minuty dziennie
               </Txt>
               <View style={styles.grid}>
@@ -240,6 +249,8 @@ export default function Onboarding() {
                       setUnit('minutes');
                       setGoal(value);
                     }}
+                    colors={c}
+                    styles={styles}
                   />
                 ))}
               </View>
@@ -251,7 +262,7 @@ export default function Onboarding() {
               >
                 <Txt
                   variant="label"
-                  color={goal === null ? colors.paper : colors.onDarkSoft}
+                  color={goal === null ? c.paper : c.onDarkSoft}
                 >
                   bez celu czytania
                 </Txt>
@@ -267,7 +278,7 @@ export default function Onboarding() {
               accessibilityRole="button"
               style={{ paddingVertical: 10, marginBottom: 6 }}
             >
-              <Txt variant="label" color={colors.onDarkSoft} align="center">
+              <Txt variant="label" color={c.onDarkSoft} align="center">
                 Pomiń ten krok
               </Txt>
             </Pressable>
@@ -288,7 +299,7 @@ export default function Onboarding() {
           {step === 0 ? (
             <Txt
               variant="micro"
-              color={colors.onDarkSoft}
+              color={c.onDarkSoft}
               align="center"
               style={{ marginTop: 14 }}
             >
@@ -298,7 +309,7 @@ export default function Onboarding() {
           {step === 1 && !genres.length ? (
             <Txt
               variant="micro"
-              color={colors.onDarkSoft}
+              color={c.onDarkSoft}
               align="center"
               style={{ marginTop: 12 }}
             >
@@ -308,7 +319,7 @@ export default function Onboarding() {
           {step === 2 && !moods.length ? (
             <Txt
               variant="micro"
-              color={colors.onDarkSoft}
+              color={c.onDarkSoft}
               align="center"
               style={{ marginTop: 12 }}
             >
@@ -321,7 +332,7 @@ export default function Onboarding() {
   );
 }
 
-function Welcome() {
+function Welcome({ colors, styles }: { colors: ReturnType<typeof useColors>; styles: ReturnType<typeof makeStyles> }) {
   return (
     <View style={{ paddingTop: 28 }}>
       <Txt style={styles.headline}>
@@ -367,10 +378,14 @@ function Step({
   title,
   lead,
   children,
+  colors,
+  styles,
 }: {
   title: string;
   lead: string;
   children: React.ReactNode;
+  colors: ReturnType<typeof useColors>;
+  styles: ReturnType<typeof makeStyles>;
 }) {
   return (
     <View style={{ paddingTop: 22 }}>
@@ -387,10 +402,14 @@ function Choice({
   label,
   active,
   onPress,
+  colors,
+  styles,
 }: {
   label: string;
   active: boolean;
   onPress: () => void;
+  colors: ReturnType<typeof useColors>;
+  styles: ReturnType<typeof makeStyles>;
 }) {
   return (
     <Pressable
@@ -415,86 +434,89 @@ function Choice({
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.forest, paddingHorizontal: 24 },
-  top: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    paddingTop: 6,
-    paddingBottom: 4,
-    minHeight: 42,
-  },
-  wordmark: { fontFamily: fonts.semi, fontSize: 18, color: colors.onDark },
-  marks: { flexDirection: 'row', gap: 5, flex: 1 },
-  mark: { height: 2, flex: 1, borderRadius: 1 },
-  headline: {
-    marginTop: 14,
-    fontFamily: fonts.semi,
-    fontSize: 31,
-    lineHeight: 38,
-    letterSpacing: -0.5,
-    color: colors.onDark,
-  },
-  stepTitle: {
-    fontFamily: fonts.semi,
-    fontSize: 32,
-    lineHeight: 33,
-    letterSpacing: -0.3,
-    color: colors.onDark,
-  },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  choice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderWidth: 1,
-    borderRadius: 3,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-  },
-  preview: {
-    marginTop: 140,
-    backgroundColor: colors.paper,
-    borderRadius: 4,
-    padding: 18,
-    transform: [{ rotate: '-1.2deg' }],
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(27,22,17,0.2)',
-  },
-  previewReaction: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 16,
-  },
-  previewFooter: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.rule,
-    marginTop: 14,
-    paddingTop: 10,
-  },
-  textarea: {
-    minHeight: 96,
-    borderWidth: 1,
-    borderColor: 'rgba(242,233,218,0.32)',
-    borderRadius: 3,
-    padding: 12,
-    color: colors.onDark,
-    fontFamily: fonts.read,
-    fontSize: 15,
-    lineHeight: 22,
-    textAlignVertical: 'top',
-  },
-  titleChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(242,233,218,0.25)',
-    borderRadius: 3,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    maxWidth: '100%',
-  },
-  footer: { paddingTop: 10 },
-});
+function makeStyles(c: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.forest, paddingHorizontal: 24 },
+    top: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+      paddingTop: 6,
+      paddingBottom: 4,
+      minHeight: 42,
+    },
+    wordmark: { fontFamily: fonts.semi, fontSize: 18, color: c.onDark },
+    marks: { flexDirection: 'row', gap: 5, flex: 1 },
+    mark: { height: 2, flex: 1, borderRadius: 1 },
+    headline: {
+      marginTop: 14,
+      fontFamily: fonts.semi,
+      fontSize: 31,
+      lineHeight: 38,
+      letterSpacing: -0.5,
+      color: c.onDark,
+    },
+    stepTitle: {
+      fontFamily: fonts.semi,
+      fontSize: 32,
+      lineHeight: 33,
+      letterSpacing: -0.3,
+      color: c.onDark,
+    },
+    grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    choice: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      borderWidth: 1,
+      borderRadius: 3,
+      paddingHorizontal: 12,
+      paddingVertical: 9,
+    },
+    preview: {
+      marginTop: 140,
+      backgroundColor: c.paper,
+      borderRadius: 4,
+      padding: 18,
+      transform: [{ rotate: '-1.2deg' }],
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: 'rgba(27,22,17,0.2)',
+    },
+    previewReaction: {
+      flexDirection: 'row',
+      gap: 10,
+      marginTop: 16,
+    },
+    previewFooter: {
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: c.rule,
+      marginTop: 14,
+      paddingTop: 10,
+    },
+    textarea: {
+      minHeight: 96,
+      borderWidth: 1,
+      borderColor: 'rgba(242,233,218,0.32)',
+      borderRadius: 3,
+      padding: 12,
+      color: c.onDark,
+      fontFamily: fonts.read,
+      fontSize: 15,
+      lineHeight: 22,
+      textAlignVertical: 'top',
+    },
+    titleChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      borderWidth: 1,
+      borderColor: 'rgba(242,233,218,0.25)',
+      borderRadius: 3,
+      paddingHorizontal: 10,
+      paddingVertical: 7,
+      maxWidth: '100%',
+    },
+    footer: { paddingTop: 10 },
+  });
+}
+

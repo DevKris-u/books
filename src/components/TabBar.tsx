@@ -3,7 +3,7 @@ import { BlurView } from 'expo-blur';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import React from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
-import { colors } from '@/theme';
+import { colors, useColors } from '@/theme';
 import { tapLight } from '@/lib/haptics';
 
 const meta: Record<string, { icon: keyof typeof Feather.glyphMap; label: string }> = {
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
     ...(Platform.select({
       web: { boxShadow: '0 18px 44px rgba(11,36,30,0.38)' } as object,
       default: {
-        shadowColor: colors.forestDeep,
+        shadowColor: '#1D221C',
         shadowOpacity: 0.34,
         shadowRadius: 22,
         shadowOffset: { width: 0, height: 12 },

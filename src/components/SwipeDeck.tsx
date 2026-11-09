@@ -7,7 +7,7 @@ import React, {
 } from 'react';
 import { Animated, PanResponder, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Candidate } from '@/lib/recommend';
-import { colors } from '@/theme';
+import { useColors } from '@/theme';
 import { FragmentCard } from './FragmentCard';
 import { Txt } from './ui';
 import { tapLike } from '@/lib/haptics';
@@ -30,6 +30,7 @@ export const SwipeDeck = forwardRef<SwipeDeckHandle, Props>(function SwipeDeck(
   const flying = useRef(false);
   const shownAt = useRef(Date.now());
   const top = cards[0];
+  const c = useColors();
 
   useEffect(() => {
     shownAt.current = Date.now();
@@ -105,6 +106,8 @@ export const SwipeDeck = forwardRef<SwipeDeckHandle, Props>(function SwipeDeck(
 
   if (!top) return null;
 
+  const styles = makeStyles(c);
+
   return (
     <View style={styles.deck}>
       {cards[1] ? (
@@ -144,7 +147,7 @@ export const SwipeDeck = forwardRef<SwipeDeckHandle, Props>(function SwipeDeck(
           importantForAccessibility="no-hide-descendants"
           style={[styles.stamp, styles.stampLike, { opacity: likeOpacity }]}
         >
-          <Txt variant="meta" color={colors.claret} style={{ fontSize: 13, letterSpacing: 1 }}>
+          <Txt variant="meta" color={c.claret} style={{ fontSize: 13, letterSpacing: 1 }}>
             na półkę
           </Txt>
         </Animated.View>
@@ -154,7 +157,7 @@ export const SwipeDeck = forwardRef<SwipeDeckHandle, Props>(function SwipeDeck(
           importantForAccessibility="no-hide-descendants"
           style={[styles.stamp, styles.stampPass, { opacity: passOpacity }]}
         >
-          <Txt variant="meta" color={colors.inkSoft} style={{ fontSize: 13, letterSpacing: 1 }}>
+          <Txt variant="meta" color={c.inkSoft} style={{ fontSize: 13, letterSpacing: 1 }}>
             pomiń
           </Txt>
         </Animated.View>
@@ -163,35 +166,37 @@ export const SwipeDeck = forwardRef<SwipeDeckHandle, Props>(function SwipeDeck(
   );
 });
 
-const styles = StyleSheet.create({
-  deck: { flex: 1, justifyContent: 'center' },
-  behind: {
-    position: 'absolute',
-    left: 8,
-    right: 8,
-    top: 14,
-    opacity: 0.55,
-    transform: [{ scale: 0.975 }],
-    alignItems: 'stretch',
-  },
-  top: { flex: 1 },
-  stamp: {
-    position: 'absolute',
-    top: 22,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderRadius: 2,
-    backgroundColor: 'rgba(248,242,231,0.92)',
-  },
-  stampLike: {
-    left: 18,
-    borderColor: 'rgba(142,47,54,0.55)',
-    transform: [{ rotate: '-4deg' }],
-  },
-  stampPass: {
-    right: 18,
-    borderColor: colors.rule,
-    transform: [{ rotate: '4deg' }],
-  },
-});
+function makeStyles(c: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    deck: { flex: 1, justifyContent: 'center' },
+    behind: {
+      position: 'absolute',
+      left: 8,
+      right: 8,
+      top: 14,
+      opacity: 0.55,
+      transform: [{ scale: 0.975 }],
+      alignItems: 'stretch',
+    },
+    top: { flex: 1 },
+    stamp: {
+      position: 'absolute',
+      top: 22,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderWidth: 1,
+      borderRadius: 2,
+      backgroundColor: 'rgba(248,242,231,0.92)',
+    },
+    stampLike: {
+      left: 18,
+      borderColor: 'rgba(142,47,54,0.55)',
+      transform: [{ rotate: '-4deg' }],
+    },
+    stampPass: {
+      right: 18,
+      borderColor: c.rule,
+      transform: [{ rotate: '4deg' }],
+    },
+  });
+}

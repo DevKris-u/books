@@ -5,7 +5,7 @@ import { Pressable, View } from 'react-native';
 import { Book } from '@/data/types';
 import { offersFor, shopUrl } from '@/lib/utils';
 import { useStore } from '@/state/store';
-import { colors } from '@/theme';
+import { useColors } from '@/theme';
 import { Rule, Sheet, Txt } from './ui';
 
 export function ShopSheet({
@@ -18,6 +18,7 @@ export function ShopSheet({
   onClose: () => void;
 }) {
   const { dispatch } = useStore();
+  const c = useColors();
   const [opened, setOpened] = useState<string | null>(null);
   if (!book) return null;
 
@@ -36,7 +37,7 @@ export function ShopSheet({
 
   return (
     <Sheet visible={visible} onClose={onClose} title="Gdzie kupić">
-      <Txt variant="small" color={colors.inkMid} style={{ marginBottom: 14, marginTop: -6 }}>
+      <Txt variant="small" color={c.inkMid} style={{ marginBottom: 14, marginTop: -6 }}>
         {book.title} · {book.author}
       </Txt>
 
@@ -56,22 +57,22 @@ export function ShopSheet({
             })}
           >
             <View style={{ flex: 1 }}>
-              <Txt variant="label" color={colors.ink}>
+              <Txt variant="label" color={c.ink}>
                 {shop.name}
               </Txt>
-              <Txt variant="small" color={colors.inkSoft} style={{ marginTop: 2 }}>
+              <Txt variant="small" color={c.inkSoft} style={{ marginTop: 2 }}>
                 {shop.note}
               </Txt>
             </View>
-            <Txt variant="label" color={colors.ink}>
+            <Txt variant="label" color={c.ink}>
               {shop.price.toFixed(2).replace('.', ',')} zł
             </Txt>
-            <Feather name="external-link" size={15} color={colors.inkMid} />
+            <Feather name="external-link" size={15} color={c.inkMid} />
           </Pressable>
         </View>
       ))}
 
-      <Txt variant="small" color={colors.inkSoft} style={{ marginTop: 14, lineHeight: 19 }}>
+      <Txt variant="small" color={c.inkSoft} style={{ marginTop: 14, lineHeight: 19 }}>
         {opened
           ? 'Otworzyliśmy sklep w przeglądarce. Margines nie sprzedaje książek i nie przetwarza płatności.'
           : 'Przejście do sklepu otworzy jego stronę w przeglądarce. Link afiliacyjny — Margines nie sprzedaje książek i nie przetwarza płatności.'}
@@ -82,7 +83,7 @@ export function ShopSheet({
         accessibilityRole="button"
         style={{ marginTop: 18, paddingVertical: 8 }}
       >
-        <Txt variant="label" color={colors.inkMid} align="center">
+        <Txt variant="label" color={c.inkMid} align="center">
           Wróć
         </Txt>
       </Pressable>

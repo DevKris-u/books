@@ -2,7 +2,7 @@ import { Feather } from '@expo/vector-icons';
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import { Candidate } from '@/lib/recommend';
-import { colors } from '@/theme';
+import { useColors } from '@/theme';
 import { Rule, Sheet, Txt } from './ui';
 
 export function CardMenu({
@@ -20,6 +20,8 @@ export function CardMenu({
   onSave: () => void;
   onHideAuthor: () => void;
 }) {
+  const c = useColors();
+
   if (!card) return null;
 
   const rows: {
@@ -52,7 +54,7 @@ export function CardMenu({
 
   return (
     <Sheet visible={visible} onClose={onClose}>
-      <Txt variant="meta" color={colors.inkSoft} style={{ marginBottom: 6 }}>
+      <Txt variant="meta" color={c.inkSoft} style={{ marginBottom: 6 }}>
         {card.book.title}
       </Txt>
       {rows.map((row, index) => (
@@ -73,14 +75,14 @@ export function CardMenu({
             <Feather
               name={row.icon}
               size={17}
-              color={row.danger ? colors.claret : colors.inkMid}
+              color={row.danger ? c.claret : c.inkMid}
             />
             <View style={{ flex: 1 }}>
-              <Txt variant="label" color={row.danger ? colors.claret : colors.ink}>
+              <Txt variant="label" color={row.danger ? c.claret : c.ink}>
                 {row.label}
               </Txt>
               {row.hint ? (
-                <Txt variant="small" color={colors.inkSoft} style={{ marginTop: 2 }}>
+                <Txt variant="small" color={c.inkSoft} style={{ marginTop: 2 }}>
                   {row.hint}
                 </Txt>
               ) : null}
@@ -93,7 +95,7 @@ export function CardMenu({
         accessibilityRole="button"
         style={{ paddingVertical: 14, marginTop: 6 }}
       >
-        <Txt variant="label" color={colors.inkMid} align="center">
+        <Txt variant="label" color={c.inkMid} align="center">
           Anuluj
         </Txt>
       </Pressable>

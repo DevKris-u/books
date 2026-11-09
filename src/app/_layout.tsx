@@ -18,7 +18,7 @@ import {
   Literata_700Bold,
 } from '@expo-google-fonts/literata';
 import { StoreProvider, useStore } from '@/state/store';
-import { colors, fonts } from '@/theme';
+import { ThemeProvider, useColors, fonts, lightColors, darkColors } from '@/theme';
 import { Txt } from '@/components/ui';
 
 export default function RootLayout() {
@@ -39,20 +39,31 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <StoreProvider>
-        <StatusBar style="dark" />
-        <View style={styles.root}>
-          <View style={styles.frame}>
-            <RootStack />
-          </View>
-        </View>
+        <AppBody />
       </StoreProvider>
     </SafeAreaProvider>
   );
 }
 
-function RootStack() {
+function AppBody() {
   const { state } = useStore();
-  if (!state.hydrated) return <BootSplash />;
+
+  return (
+    <ThemeProvider theme={state.theme}>
+      <StatusBar style={state.theme === 'dark' ? 'light' : 'dark'} />
+      <View style={[styles.root, { backgroundColor: state.theme === 'dark' ? '#151615' : '#F7F8F6' }]}>
+        <View style={[styles.frame, { backgroundColor: state.theme === 'dark' ? '#232423' : '#ECEEEA' }]}>
+          <RootStack theme={state.theme} />
+        </View>
+      </View>
+    </ThemeProvider>
+  );
+}
+
+function RootStack({ theme }: { theme: 'light' | 'dark' }) {
+  const { state } = useStore();
+  const colors = theme === 'dark' ? darkColors : lightColors;
+  if (!state.hydrated) return <BootSplash colors={colors} />;
 
   return (
     <Stack
@@ -74,12 +85,13 @@ function RootStack() {
   );
 }
 
-function BootSplash() {
+function BootSplash({ colors }: { colors?: ReturnType<typeof useColors> } = {}) {
+  const c = colors ?? { background: '#F7F8F6', paper: '#F7F8F6', forest: '#4B5548', onDark: '#1D221C', onDarkSoft: '#A3AE9C' } as ReturnType<typeof useColors>;
   return (
-    <View style={styles.splash}>
+    <View style={[styles.splash, { backgroundColor: c.forest }]}>
       <View style={{ alignItems: 'flex-start' }}>
         <Txt
-          style={{ fontFamily: fonts.semi, fontSize: 30, color: colors.onDark, letterSpacing: -0.4 }}
+          style={{ fontFamily: fonts.semi, fontSize: 30, color: c.onDark, letterSpacing: -0.4 }}
         >
           margines
         </Txt>
@@ -87,11 +99,11 @@ function BootSplash() {
           style={{
             height: 1,
             width: 46,
-            backgroundColor: 'rgba(168,127,63,0.8)',
+            backgroundColor: 'rgba(251, 119, 6, 0.8)',
             marginVertical: 12,
           }}
         />
-        <Txt variant="small" color={colors.onDarkSoft}>
+        <Txt variant="small" color={c.onDarkSoft}>
           fragmenty, które zostają w głowie
         </Txt>
       </View>
@@ -102,14 +114,12 @@ function BootSplash() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.forestDeep,
     alignItems: 'center',
   },
   frame: {
     flex: 1,
     width: '100%',
     maxWidth: 480,
-    backgroundColor: colors.paper,
     overflow: 'hidden',
     ...(Platform.OS === 'web'
       ? ({ boxShadow: '0 26px 80px rgba(0,0,0,0.38)' } as object)
@@ -117,7 +127,6 @@ const styles = StyleSheet.create({
   },
   splash: {
     flex: 1,
-    backgroundColor: colors.forest,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,

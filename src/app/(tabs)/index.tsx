@@ -12,7 +12,7 @@ import { EmotionTag } from '@/data/types';
 import { buildQueue, Candidate } from '@/lib/recommend';
 import { tapLight } from '@/lib/haptics';
 import { hotPeakStatus, useStore } from '@/state/store';
-import { colors, fonts } from '@/theme';
+import { colors, fonts, useColors } from '@/theme';
 
 type Focus = { bookId?: string; tag?: EmotionTag } | null;
 
@@ -20,6 +20,7 @@ export default function FeedScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { state, dispatch } = useStore();
+  const c = useColors();
   const deckRef = useRef<SwipeDeckHandle>(null);
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -31,7 +32,6 @@ export default function FeedScreen() {
   const [likeOpen, setLikeOpen] = useState(false);
   const [shopsOpen, setShopsOpen] = useState(false);
   const [menuCard, setMenuCard] = useState<Candidate | null>(null);
-  const [hintOpen, setHintOpen] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -62,7 +62,6 @@ export default function FeedScreen() {
     (dir: 'like' | 'pass', card: Candidate, dwellMs: number) => {
       dispatch({ type: 'SWIPE', fragmentId: card.id, dir, dwellMs });
       setCursor((value) => value + 1);
-      setHintOpen(false);
       if (dir === 'like') {
         setLiked(card);
         setLikeOpen(true);
@@ -75,7 +74,6 @@ export default function FeedScreen() {
     if (!state.lastAction) return;
     dispatch({ type: 'UNDO' });
     setCursor((value) => Math.max(0, value - 1));
-    setHintOpen(false);
   };
 
   const startSimilar = () => {
@@ -99,6 +97,8 @@ export default function FeedScreen() {
       ? `tag „${focus.tag}”`
       : null;
 
+  const styles = makeStyles(c);
+
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.padded}>
@@ -112,7 +112,7 @@ export default function FeedScreen() {
             style={({ pressed }) => [styles.hotPill, pressed ? { opacity: 0.72 } : null]}
           >
             <View style={styles.hotIcon}>
-              <Feather name="zap" size={10} color={colors.forestDeep} />
+              <Feather name="zap" size={10} color={c.forestDeep} />
             </View>
             <Txt style={styles.hotLabel}>Hot Peak</Txt>
             <View style={styles.hotDivider} />
@@ -129,7 +129,7 @@ export default function FeedScreen() {
                 onPress={undo}
                 style={({ pressed }) => [styles.undo, pressed ? { opacity: 0.45 } : null]}
               >
-                <Feather name="corner-up-left" size={20} color={colors.inkMid} />
+                <Feather name="corner-up-left" size={20} color={c.inkMid} />
               </Pressable>
             </View>
           ) : null}
@@ -137,7 +137,7 @@ export default function FeedScreen() {
 
         {notice ? (
           <View style={styles.notice}>
-            <Txt variant="small" color={colors.inkMid}>
+            <Txt variant="small" color={c.inkMid}>
               {notice}
             </Txt>
           </View>
@@ -145,29 +145,14 @@ export default function FeedScreen() {
 
         {focusLabel ? (
           <View style={styles.focusBar}>
-            <Feather name="layers" size={13} color={colors.inkMid} />
-            <Txt variant="small" color={colors.inkMid} style={{ flex: 1 }} numberOfLines={1}>
+            <Feather name="layers" size={13} color={c.inkMid} />
+            <Txt variant="small" color={c.inkMid} style={{ flex: 1 }} numberOfLines={1}>
               podobne do: {focusLabel}
             </Txt>
             <Pressable onPress={resetFocus} accessibilityRole="button">
-              <Txt variant="meta" color={colors.claret}>
+              <Txt variant="meta" color={c.claret}>
                 cały feed
               </Txt>
-            </Pressable>
-          </View>
-        ) : hintOpen && !done ? (
-          <View style={styles.hint}>
-            <View style={styles.hintRule} />
-            <Txt variant="small" color={colors.inkMid} style={{ flex: 1 }}>
-              Przesuwaj w prawo, jeśli fragment Cię wciąga. W lewo — pomiń.
-            </Txt>
-            <Pressable
-              onPress={() => setHintOpen(false)}
-              accessibilityRole="button"
-              accessibilityLabel="Zamknij podpowiedź"
-              hitSlop={8}
-            >
-              <Feather name="x" size={14} color={colors.inkSoft} />
             </Pressable>
           </View>
         ) : null}
@@ -223,10 +208,10 @@ export default function FeedScreen() {
               style={styles.edgeZoneLeft}
             />
             <View style={{ alignItems: 'center' }}>
-              <Txt variant="meta" color={colors.ink}>
+              <Txt variant="meta" color={c.ink}>
                 {Math.min(cursor + 1, queue.length)} / {queue.length}
               </Txt>
-              <Txt variant="micro" color={colors.inkSoft}>
+              <Txt variant="micro" color={c.inkSoft}>
                 w tej sesji
               </Txt>
             </View>
@@ -282,121 +267,111 @@ export default function FeedScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.paper },
-  padded: { flex: 1, paddingHorizontal: 22 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: 8,
-    paddingBottom: 6,
-  },
-  undoWrap: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  undo: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  wordmark: {
-    fontFamily: fonts.semi,
-    fontSize: 20,
-    color: colors.ink,
-    letterSpacing: -0.3,
-  },
-  hotPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    height: 32,
-    paddingLeft: 6,
-    paddingRight: 10,
-    borderRadius: 16,
-    backgroundColor: colors.forest,
-    borderWidth: 1,
-    borderColor: 'rgba(168,127,63,0.55)',
-  },
-  hotIcon: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.brass,
-  },
-  hotLabel: {
-    fontFamily: fonts.uiSemi,
-    fontSize: 11.5,
-    letterSpacing: 0.2,
-    color: colors.onDark,
-  },
-  hotDivider: {
-    width: StyleSheet.hairlineWidth,
-    height: 12,
-    backgroundColor: 'rgba(242,233,218,0.22)',
-  },
-  hotCount: {
-    fontFamily: fonts.uiMedium,
-    fontSize: 11,
-    letterSpacing: 0.2,
-    color: colors.brass,
-    fontVariant: ['tabular-nums'],
-  },
-  hint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 8,
-  },
-  hintRule: {
-    width: 2,
-    alignSelf: 'stretch',
-    backgroundColor: colors.claret,
-    borderRadius: 1,
-  },
-  focusBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.ruleSoft,
-  },
-  notice: {
-    backgroundColor: colors.forestTint,
-    borderRadius: 3,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 6,
-  },
-  actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 50,
-    paddingTop: 10,
-    paddingBottom: 12,
-  },
-  edgeZoneLeft: {
-    position: 'absolute',
-    left: -22,
-    top: 0,
-    bottom: 0,
-    width: 88,
-  },
-  edgeZoneRight: {
-    position: 'absolute',
-    right: -22,
-    top: 0,
-    bottom: 0,
-    width: 88,
-  },
-});
+function makeStyles(c: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.paper },
+    padded: { flex: 1, paddingHorizontal: 22 },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingTop: 8,
+      paddingBottom: 6,
+    },
+    undoWrap: {
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    undo: {
+      width: 36,
+      height: 36,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    wordmark: {
+      fontFamily: fonts.semi,
+      fontSize: 20,
+      color: c.ink,
+      letterSpacing: -0.3,
+    },
+    hotPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      height: 32,
+      paddingLeft: 6,
+      paddingRight: 10,
+      borderRadius: 16,
+      backgroundColor: c.forest,
+      borderWidth: 1,
+      borderColor: 'rgba(168,127,63,0.55)',
+    },
+    hotIcon: {
+      width: 18,
+      height: 18,
+      borderRadius: 9,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: c.brass,
+    },
+    hotLabel: {
+      fontFamily: fonts.uiSemi,
+      fontSize: 11.5,
+      letterSpacing: 0.2,
+      color: c.onDark,
+    },
+    hotDivider: {
+      width: StyleSheet.hairlineWidth,
+      height: 12,
+      backgroundColor: 'rgba(242,233,218,0.22)',
+    },
+    hotCount: {
+      fontFamily: fonts.uiMedium,
+      fontSize: 11,
+      letterSpacing: 0.2,
+      color: c.brass,
+      fontVariant: ['tabular-nums'],
+    },
+    focusBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingVertical: 8,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.ruleSoft,
+    },
+    notice: {
+      backgroundColor: c.forestTint,
+      borderRadius: 3,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      marginBottom: 6,
+    },
+    actions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: 50,
+      paddingTop: 10,
+      paddingBottom: 12,
+    },
+    edgeZoneLeft: {
+      position: 'absolute',
+      left: -22,
+      top: 0,
+      bottom: 0,
+      width: 88,
+    },
+    edgeZoneRight: {
+      position: 'absolute',
+      right: -22,
+      top: 0,
+      bottom: 0,
+      width: 88,
+    },
+  });
+}

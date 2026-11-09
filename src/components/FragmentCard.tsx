@@ -1,7 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Platform, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
-import { colors, fonts, type } from '@/theme';
+import { fonts, type, useColors } from '@/theme';
 import { Candidate } from '@/lib/recommend';
 import { ScallopedPanel } from './ScallopedPanel';
 import { Cover, Pill, SourceMark, Txt } from './ui';
@@ -27,6 +27,7 @@ export function FragmentCard({
 }) {
   const { height } = useWindowDimensions();
   const reading = readingSize(card.text.length, height);
+  const c = useColors();
   const [frame, setFrame] = useState({ width: 0, height: 0 });
 
   return (
@@ -53,15 +54,15 @@ export function FragmentCard({
       <ScallopedPanel
         width={frame.width}
         height={frame.height}
-        fill={colors.forestTint}
+        fill={c.forestTint}
         style={styles.panel}
       />
 
       <View style={styles.content}>
         <View style={styles.topRow}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Feather name="feather" size={11} color={colors.inkSoft} />
-          <Txt variant="micro" color={colors.inkSoft}>
+          <Feather name="feather" size={11} color={c.inkSoft} />
+          <Txt variant="micro" color={c.inkSoft}>
             {card.page ? `strona ${card.page}` : 'fragment'}
           </Txt>
         </View>
@@ -73,7 +74,7 @@ export function FragmentCard({
           <View style={styles.fragmentWrap}>
             <Txt
               style={[type.reading, reading]}
-              color={colors.ink}
+              color={c.ink}
               maxFontSizeMultiplier={1.2}
             >
               {card.text}
@@ -85,13 +86,13 @@ export function FragmentCard({
             <View style={{ flex: 1 }}>
               <Txt
                 variant="reaction"
-                color={colors.claret}
+                color={c.claret}
                 maxFontSizeMultiplier={1.2}
                 numberOfLines={3}
               >
                 {card.reaction}
               </Txt>
-              <Txt variant="micro" color={colors.inkSoft} style={{ marginTop: 4 }}>
+              <Txt variant="micro" color={c.inkSoft} style={{ marginTop: 4 }}>
                 {card.curator.handle}
               </Txt>
             </View>
@@ -110,15 +111,15 @@ export function FragmentCard({
         <View style={{ flex: 1, marginLeft: 12 }}>
           <Txt
             numberOfLines={1}
-            style={{ fontFamily: fonts.semi, fontSize: 15, color: colors.ink }}
+            style={{ fontFamily: fonts.semi, fontSize: 15, color: c.ink }}
           >
             {card.book.title}
           </Txt>
-          <Txt variant="meta" color={colors.inkSoft} style={{ marginTop: 2 }}>
+          <Txt variant="meta" color={c.inkSoft} style={{ marginTop: 2 }}>
             {card.book.author} · {card.book.genre}
           </Txt>
         </View>
-        <Feather name="chevron-right" size={16} color={colors.inkSoft} />
+        <Feather name="chevron-right" size={16} color={c.inkSoft} />
       </View>
       </View>
     </Pressable>
@@ -153,7 +154,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingRight: 14,
     justifyContent: 'center',
-    gap: 14,
+    gap: 20,
     paddingBottom: 8,
   },
   fragmentWrap: {
@@ -173,6 +174,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
+    marginTop: 20,
   },
   footer: {
     flexDirection: 'row',
