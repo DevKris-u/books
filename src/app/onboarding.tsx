@@ -120,7 +120,7 @@ export default function Onboarding() {
           {step === 1 ? (
             <Step
               title="Co Cię wciąga?"
-              lead="Wybierz gatunki, po które sięgasz najchętniej. Możesz zaznaczyć kilka — feed zacznie od nich, ale nie zamknie się w bańce."
+              lead="Wybierz gatunki, po które sięgasz najchętniej."
             >
               <View style={styles.grid}>
                 {GENRES.map((genre) => (
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
   },
   stepTitle: {
     fontFamily: fonts.semi,
-    fontSize: 27,
+    fontSize: 32,
     lineHeight: 33,
     letterSpacing: -0.3,
     color: colors.onDark,
