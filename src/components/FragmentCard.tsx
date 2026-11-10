@@ -77,7 +77,9 @@ export function FragmentCard({
               color={c.ink}
               maxFontSizeMultiplier={1.2}
             >
+              <Txt style={{ color: c.claret, fontSize: 24 }}>“</Txt>
               {card.text}
+              <Txt style={{ color: c.claret, fontSize: 14 }}>”</Txt>
             </Txt>
           </View>
 

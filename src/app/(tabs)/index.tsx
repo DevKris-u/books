@@ -109,13 +109,14 @@ export default function FeedScreen() {
             accessibilityRole="button"
             accessibilityLabel={`Hot Peak, pozostało ${hot.remaining} z ${hot.quota}`}
             onPress={() => router.push('/hot-peak')}
-            style={({ pressed }) => [styles.hotPill, pressed ? { opacity: 0.72 } : null]}
+            style={({ pressed }) => [
+              { flexDirection: 'row', alignItems: 'center', gap: 6 },
+              pressed ? { opacity: 0.72 } : null,
+            ]}
           >
             <View style={styles.hotIcon}>
-              <Feather name="zap" size={10} color={c.forestDeep} />
+              <Feather name="zap" size={16} color={c.brass} />
             </View>
-            <Txt style={styles.hotLabel}>Hot Peak</Txt>
-            <View style={styles.hotDivider} />
             <Txt style={styles.hotCount}>
               {hot.remaining}/{hot.quota}
             </Txt>
@@ -159,28 +160,15 @@ export default function FeedScreen() {
 
         <View style={{ flex: 1, paddingTop: 12 }}>
           {done ? (
-            <View style={{ flex: 1, justifyContent: 'center' }}>
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
               <EmptyState
+                centered
                 icon={focusLabel ? 'layers' : 'moon'}
                 title={focusLabel ? 'Nic więcej z tego nie mamy.' : 'Na dziś to wszystko.'}
                 body={
                   focusLabel
                     ? 'Wróć do całego feedu albo dodaj własny fragment z tej książki.'
                     : 'Wróć jutro po nowe fragmenty albo dodaj własny — pomóż innym przerwać zastój czytelniczy. Margines nie ma nieskończonego feedu i to jest celowe.'
-                }
-                action={
-                  <View style={{ gap: 10, alignSelf: 'stretch' }}>
-                    <Btn label="Dodaj fragment" onPress={() => router.push('/dodaj')} />
-                    {focusLabel ? (
-                      <Btn label="Wróć do całego feedu" variant="ghost" onPress={resetFocus} />
-                    ) : (
-                      <Btn
-                        label="Zobacz bibliotekę"
-                        variant="ghost"
-                        onPress={() => router.push('/biblioteka')}
-                      />
-                    )}
-                  </View>
                 }
               />
             </View>
@@ -302,36 +290,18 @@ function makeStyles(c: ReturnType<typeof useColors>) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      height: 32,
-      paddingLeft: 6,
-      paddingRight: 10,
-      borderRadius: 16,
-      backgroundColor: c.forest,
-      borderWidth: 1,
-      borderColor: 'rgba(168,127,63,0.55)',
     },
     hotIcon: {
-      width: 18,
-      height: 18,
-      borderRadius: 9,
+      width: 20,
+      height: 20,
+      borderRadius: 10,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: c.brass,
-    },
-    hotLabel: {
-      fontFamily: fonts.uiSemi,
-      fontSize: 11.5,
-      letterSpacing: 0.2,
-      color: c.onDark,
-    },
-    hotDivider: {
-      width: StyleSheet.hairlineWidth,
-      height: 12,
-      backgroundColor: 'rgba(242,233,218,0.22)',
+      marginRight: 6,
     },
     hotCount: {
-      fontFamily: fonts.uiMedium,
-      fontSize: 11,
+      fontFamily: fonts.uiBold,
+      fontSize: 13,
       letterSpacing: 0.2,
       color: c.brass,
       fontVariant: ['tabular-nums'],

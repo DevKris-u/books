@@ -120,7 +120,6 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     maxWidth: 480,
-    overflow: 'hidden',
     ...(Platform.OS === 'web'
       ? ({ boxShadow: '0 26px 80px rgba(0,0,0,0.38)' } as object)
       : {}),

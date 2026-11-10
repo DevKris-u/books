@@ -682,7 +682,7 @@ export default function AddScreen() {
               </Txt>
             </View>
 
-            <View style={{ height: 430 }}>
+            <View style={{ marginTop: 12 }}>
               <FragmentCard card={draft} />
             </View>
 
