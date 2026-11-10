@@ -200,7 +200,7 @@ function makeStyles(c: ReturnType<typeof useColors>) {
       gap: 12,
       alignItems: 'center',
       borderWidth: 1,
-      borderRadius: 3,
+      borderRadius: 12,
       padding: 12,
       marginBottom: 8,
     },

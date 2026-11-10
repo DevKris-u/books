@@ -150,7 +150,7 @@ export function FragmentCard({
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    borderRadius: 28,
+    borderRadius: 12,
     overflow: 'hidden',
     marginHorizontal: 2,
     ...Platform.select({
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     left: 0,
-    borderRadius: 28,
+    borderRadius: 12,
   },
   content: {
     flex: 1,
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
   },
   reactionRule: {
     width: 4,
-    borderRadius: 4,
+    borderRadius: 12,
   },
   tags: {
     flexDirection: 'row',

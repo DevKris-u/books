@@ -130,7 +130,7 @@ function makeStyles(c: ReturnType<typeof useColors>) {
       marginTop: 14,
       backgroundColor: c.forestTint,
       padding: 12,
-      borderRadius: 3,
+      borderRadius: 12,
     },
     sectionHead: {
       flexDirection: 'row',

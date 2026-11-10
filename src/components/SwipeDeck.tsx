@@ -185,7 +185,7 @@ function makeStyles(c: ReturnType<typeof useColors>) {
       paddingHorizontal: 12,
       paddingVertical: 6,
       borderWidth: 1,
-      borderRadius: 2,
+      borderRadius: 12,
       backgroundColor: 'rgba(248,242,231,0.92)',
     },
     stampLike: {

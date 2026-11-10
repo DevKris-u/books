@@ -123,9 +123,9 @@ export const space = {
 };
 
 export const radius = {
-  sheet: 20,
-  card: 4,
-  chip: 3,
+  sheet: 12,
+  card: 12,
+  chip: 12,
   pill: 999,
 };
 

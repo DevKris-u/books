@@ -158,7 +158,7 @@ export default function FeedScreen() {
           </View>
         ) : null}
 
-        <View style={{ flex: 1, paddingTop: 12 }}>
+        <View style={{ flex: 1, paddingVertical: 32 }}>
           {done ? (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
               <EmptyState
@@ -316,7 +316,7 @@ function makeStyles(c: ReturnType<typeof useColors>) {
     },
     notice: {
       backgroundColor: c.forestTint,
-      borderRadius: 3,
+      borderRadius: 12,
       paddingHorizontal: 12,
       paddingVertical: 8,
       marginBottom: 6,

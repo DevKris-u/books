@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   section: {
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 3,
+    borderRadius: 12,
     paddingHorizontal: 14,
   },
   row: {

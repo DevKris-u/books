@@ -1,15 +1,22 @@
-import { Feather } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useColors } from '@/theme';
 import { tapLight } from '@/lib/haptics';
 
-const meta: Record<string, { icon: keyof typeof Feather.glyphMap; label: string }> = {
-  index: { icon: 'book-open', label: 'Feed' },
-  dodaj: { icon: 'plus', label: 'Dodaj' },
-  biblioteka: { icon: 'bookmark', label: 'Biblioteka' },
-  profil: { icon: 'user', label: 'Profil' },
+const meta: Record<
+  string,
+  {
+    icon: keyof typeof Ionicons.glyphMap;
+    iconActive: keyof typeof Ionicons.glyphMap;
+    label: string;
+  }
+> = {
+  index: { icon: 'book-outline', iconActive: 'book', label: 'Feed' },
+  dodaj: { icon: 'add-circle-outline', iconActive: 'add-circle', label: 'Dodaj' },
+  biblioteka: { icon: 'bookmark-outline', iconActive: 'bookmark', label: 'Biblioteka' },
+  profil: { icon: 'person-outline', iconActive: 'person', label: 'Profil' },
 };
 
 export function MarginesTabBar({ state, navigateToTab, emitter, insets }: BottomTabBarProps) {
@@ -29,7 +36,11 @@ export function MarginesTabBar({ state, navigateToTab, emitter, insets }: Bottom
     >
       <View style={[styles.bar, { backgroundColor: c.paper }]}> 
         {state.routes.map((route, index) => {
-          const info = meta[route.name] ?? { icon: 'circle' as const, label: route.name };
+          const info = meta[route.name] ?? {
+            icon: 'ellipse-outline' as const,
+            iconActive: 'ellipse' as const,
+            label: route.name,
+          };
           const active = state.index === index;
 
           const onPress = () => {
@@ -53,11 +64,10 @@ export function MarginesTabBar({ state, navigateToTab, emitter, insets }: Bottom
               onPress={onPress}
               style={({ pressed }) => [styles.slot, { opacity: pressed ? 0.65 : 1 }]}
             >
-              {active ? <View style={[styles.activeCap, { backgroundColor: c.info }]} /> : null}
-              <Feather
-                name={info.icon}
-                size={21}
-                color={active ? c.info : c.inkSoft}
+              <Ionicons
+                name={active ? info.iconActive : info.icon}
+                size={22}
+                color={active ? c.ink : c.inkSoft}
                 style={styles.icon}
               />
             </Pressable>
@@ -83,14 +93,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-  },
-  activeCap: {
-    position: 'absolute',
-    top: 0,
-    width: 34,
-    height: 3,
-    borderBottomLeftRadius: 4,
-    borderBottomRightRadius: 4,
   },
   icon: {
     marginTop: 5,

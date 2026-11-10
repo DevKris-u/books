@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Btn, Cover, Field, IconBtn, Pill, Rule, Sheet, Txt } from '@/components/ui';
+import { Btn, Cover, Field, Pill, Rule, Sheet, Txt } from '@/components/ui';
 import { formatDate, initials, timeAgo } from '@/lib/utils';
 import {
   favouriteGenres,
@@ -44,12 +44,6 @@ export default function ProfileScreen() {
       >
         <View style={styles.header}>
           <Txt style={styles.title}>Profil</Txt>
-          <IconBtn
-            name="settings"
-            label="Ustawienia"
-            size={40}
-            onPress={() => router.push('/ustawienia')}
-          />
         </View>
 
         <View style={styles.identity}>
@@ -337,10 +331,6 @@ function makeStyles(c: ReturnType<typeof useColors>) {
       flexDirection: 'row',
       flexWrap: 'wrap',
       marginTop: 22,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: c.rule,
-      borderRadius: 3,
-      overflow: 'hidden',
     },
     statCell: {
       width: '50%',
@@ -358,7 +348,7 @@ function makeStyles(c: ReturnType<typeof useColors>) {
     proCard: {
       marginTop: 22,
       backgroundColor: c.forest,
-      borderRadius: 3,
+      borderRadius: 12,
       padding: 16,
     },
     proTitle: { fontFamily: fonts.semi, fontSize: 18, lineHeight: 24, color: c.paper, marginTop: 8 },
@@ -368,7 +358,7 @@ function makeStyles(c: ReturnType<typeof useColors>) {
       borderWidth: 1,
       borderColor: 'rgba(168,127,63,0.4)',
       backgroundColor: c.brassTint,
-      borderRadius: 3,
+      borderRadius: 12,
       padding: 16,
       flexDirection: 'row',
       alignItems: 'center',
@@ -385,7 +375,7 @@ function makeStyles(c: ReturnType<typeof useColors>) {
       backgroundColor: c.forest,
       paddingHorizontal: 14,
       paddingVertical: 10,
-      borderRadius: 3,
+      borderRadius: 12,
     },
     sectionHead: {
       flexDirection: 'row',

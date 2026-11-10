@@ -269,7 +269,7 @@ function makeStyles(c: ReturnType<typeof useColors>) {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    plan: { flex: 1, borderWidth: 1, borderRadius: 3, padding: 14 },
+    plan: { flex: 1, borderWidth: 1, borderRadius: 12, padding: 14 },
     legal: { flexDirection: 'row', gap: 18, marginTop: 24 },
     link: { textDecorationLine: 'underline' },
   });

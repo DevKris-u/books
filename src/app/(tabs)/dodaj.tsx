@@ -806,7 +806,7 @@ function makeStyles(c: ReturnType<typeof useColors>) {
       flexGrow: 1,
       borderWidth: 1,
       borderColor: c.rule,
-      borderRadius: 10,
+      borderRadius: 12,
       padding: 10,
     },
     purposeCardActive: {
@@ -819,7 +819,7 @@ function makeStyles(c: ReturnType<typeof useColors>) {
       justifyContent: 'space-between',
       gap: 6,
     },
-    photo: { width: '100%', height: 170, borderRadius: 3 },
+    photo: { width: '100%', height: 170, borderRadius: 12 },
     removePhoto: {
       position: 'absolute',
       right: 8,
@@ -830,7 +830,7 @@ function makeStyles(c: ReturnType<typeof useColors>) {
       backgroundColor: 'rgba(11,36,30,0.8)',
       paddingHorizontal: 8,
       paddingVertical: 5,
-      borderRadius: 3,
+      borderRadius: 12,
     },
     recognizing: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     bookRow: {
@@ -838,13 +838,13 @@ function makeStyles(c: ReturnType<typeof useColors>) {
       alignItems: 'center',
       gap: 12,
       borderWidth: 1,
-      borderRadius: 3,
+      borderRadius: 12,
       padding: 10,
     },
     newBook: {
       borderWidth: 1,
       borderColor: c.rule,
-      borderRadius: 3,
+      borderRadius: 12,
       padding: 14,
       backgroundColor: c.paperSoft,
     },
@@ -864,7 +864,7 @@ function makeStyles(c: ReturnType<typeof useColors>) {
     },
     nextBtn: {
       height: 56,
-      borderRadius: 28,
+      borderRadius: 12,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',

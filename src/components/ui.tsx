@@ -223,7 +223,7 @@ export function Cover({ book, width = 44 }: { book?: Book; width?: number }) {
           borderWidth: 1,
           borderColor: c.rule,
           borderStyle: 'dashed',
-          borderRadius: 2,
+          borderRadius: 3,
           alignItems: 'center',
           justifyContent: 'center',
         }}
@@ -238,7 +238,7 @@ export function Cover({ book, width = 44 }: { book?: Book; width?: number }) {
       style={{
         width,
         height,
-        borderRadius: 2,
+        borderRadius: 3,
         backgroundColor: book.color,
         overflow: 'hidden',
         borderWidth: StyleSheet.hairlineWidth,
@@ -541,7 +541,7 @@ export function Toggle({
       style={{
         width: 46,
         height: 27,
-        borderRadius: 14,
+        borderRadius: 12,
         padding: 3,
         backgroundColor: value ? c.forest : c.paperDeep,
         borderWidth: 1,
@@ -553,7 +553,7 @@ export function Toggle({
         style={{
           width: 21,
           height: 19,
-          borderRadius: 10,
+          borderRadius: 12,
           backgroundColor: value ? c.paperSoft : c.paperSoft,
         }}
       />
@@ -724,7 +724,7 @@ const staticStyles = StyleSheet.create({
   },
   btn: {
     height: 52,
-    borderRadius: 3,
+    borderRadius: 12,
     paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',
@@ -756,7 +756,7 @@ function sheetStyles(c: ReturnType<typeof useColors>) {
       alignSelf: 'center',
       width: 38,
       height: 3,
-      borderRadius: 2,
+      borderRadius: 12,
       backgroundColor: c.rule,
       marginBottom: 16,
     },
@@ -767,7 +767,7 @@ function inputStyles(c: ReturnType<typeof useColors>) {
   return StyleSheet.create({
     input: {
       borderWidth: 1,
-      borderRadius: 3,
+      borderRadius: 12,
       paddingHorizontal: 14,
       paddingVertical: 12,
       fontFamily: fonts.read,

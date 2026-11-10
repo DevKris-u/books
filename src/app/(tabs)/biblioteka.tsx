@@ -91,9 +91,6 @@ export default function LibraryScreen() {
       <View style={{ flex: 1, paddingHorizontal: 22 }}>
         <View style={{ paddingTop: 10, paddingBottom: 12 }}>
           <Txt style={styles.title}>Biblioteka</Txt>
-          <Txt variant="small" color={c.inkSoft} style={{ marginTop: 4 }}>
-            {all.length} {all.length === 1 ? 'książka' : 'książek'} na trzech półkach
-          </Txt>
         </View>
 
         <View style={styles.shelves}>
@@ -451,13 +448,13 @@ function makeStyles(c: ReturnType<typeof useColors>) {
       flexDirection: 'row',
       gap: 4,
       padding: 4,
-      borderRadius: 14,
+      borderRadius: 12,
       backgroundColor: c.paperDeep,
     },
     shelfTab: {
       flex: 1,
       height: 42,
-      borderRadius: 10,
+      borderRadius: 12,
       alignItems: 'center',
       justifyContent: 'center',
       gap: 1,
