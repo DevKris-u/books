@@ -1,9 +1,9 @@
 import { Feather } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import React from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
-import { colors, useColors } from '@/theme';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { useColors } from '@/theme';
+import { Txt } from './ui';
 import { tapLight } from '@/lib/haptics';
 
 const meta: Record<string, { icon: keyof typeof Feather.glyphMap; label: string }> = {
@@ -14,19 +14,21 @@ const meta: Record<string, { icon: keyof typeof Feather.glyphMap; label: string 
 };
 
 export function MarginesTabBar({ state, navigateToTab, emitter, insets }: BottomTabBarProps) {
+  const c = useColors();
+
   return (
     <View
       style={[
         styles.dock,
         {
-          paddingBottom: Math.max(insets.bottom, 10),
-          paddingLeft: Math.max(insets.left, 18),
-          paddingRight: Math.max(insets.right, 18),
+          backgroundColor: c.paper,
+          paddingBottom: insets.bottom,
+          paddingLeft: insets.left,
+          paddingRight: insets.right,
         },
       ]}
     >
-      <BlurView intensity={40} tint="dark" style={styles.bar}>
-        <View pointerEvents="none" style={styles.tint} />
+      <View style={[styles.bar, { backgroundColor: c.paper, borderTopColor: c.rule }]}>
         {state.routes.map((route, index) => {
           const info = meta[route.name] ?? { icon: 'circle' as const, label: route.name };
           const active = state.index === index;
@@ -50,63 +52,61 @@ export function MarginesTabBar({ state, navigateToTab, emitter, insets }: Bottom
               accessibilityState={{ selected: active }}
               accessibilityLabel={info.label}
               onPress={onPress}
-              style={({ pressed }) => [styles.slot, { opacity: pressed ? 0.7 : 1 }]}
+              style={({ pressed }) => [styles.slot, { opacity: pressed ? 0.65 : 1 }]}
             >
+              {active ? <View style={[styles.activeCap, { backgroundColor: c.info }]} /> : null}
               <Feather
                 name={info.icon}
-                size={active ? 24 : 20}
-                color={active ? colors.brass : colors.onDarkSoft}
-                style={active ? styles.iconActive : null}
+                size={21}
+                color={active ? c.info : c.inkSoft}
+                style={styles.icon}
               />
+              <Txt
+                variant="micro"
+                color={active ? c.info : c.inkSoft}
+                style={styles.label}
+              >
+                {info.label}
+              </Txt>
             </Pressable>
           );
         })}
-      </BlurView>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   dock: {
-    alignItems: 'center',
-    paddingTop: 8,
+    width: '100%',
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   bar: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'stretch',
     width: '100%',
-    maxWidth: 340,
-    height: 64,
-    paddingHorizontal: 8,
-    borderRadius: 32,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(242,233,218,0.22)',
-    ...(Platform.select({
-      web: { boxShadow: '0 18px 44px rgba(11,36,30,0.38)' } as object,
-      default: {
-        shadowColor: '#1D221C',
-        shadowOpacity: 0.34,
-        shadowRadius: 22,
-        shadowOffset: { width: 0, height: 12 },
-        elevation: 10,
-      },
-    }) ?? {}),
-  },
-  tint: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    backgroundColor: 'rgba(11,36,30,0.42)',
+    height: 70,
   },
   slot: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+    gap: 3,
   },
-  iconActive: {
-    transform: [{ scale: 1.05 }],
+  activeCap: {
+    position: 'absolute',
+    top: 0,
+    width: 34,
+    height: 3,
+    borderBottomLeftRadius: 4,
+    borderBottomRightRadius: 4,
+  },
+  icon: {
+    marginTop: 5,
+  },
+  label: {
+    fontSize: 9,
+    lineHeight: 12,
   },
 });
