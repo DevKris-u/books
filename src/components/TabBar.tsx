@@ -3,7 +3,6 @@ import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useColors } from '@/theme';
-import { Txt } from './ui';
 import { tapLight } from '@/lib/haptics';
 
 const meta: Record<string, { icon: keyof typeof Feather.glyphMap; label: string }> = {
@@ -28,7 +27,7 @@ export function MarginesTabBar({ state, navigateToTab, emitter, insets }: Bottom
         },
       ]}
     >
-      <View style={[styles.bar, { backgroundColor: c.paper, borderTopColor: c.rule }]}>
+      <View style={[styles.bar, { backgroundColor: c.paper }]}> 
         {state.routes.map((route, index) => {
           const info = meta[route.name] ?? { icon: 'circle' as const, label: route.name };
           const active = state.index === index;
@@ -61,13 +60,6 @@ export function MarginesTabBar({ state, navigateToTab, emitter, insets }: Bottom
                 color={active ? c.info : c.inkSoft}
                 style={styles.icon}
               />
-              <Txt
-                variant="micro"
-                color={active ? c.info : c.inkSoft}
-                style={styles.label}
-              >
-                {info.label}
-              </Txt>
             </Pressable>
           );
         })}
@@ -79,7 +71,6 @@ export function MarginesTabBar({ state, navigateToTab, emitter, insets }: Bottom
 const styles = StyleSheet.create({
   dock: {
     width: '100%',
-    borderTopWidth: StyleSheet.hairlineWidth,
   },
   bar: {
     flexDirection: 'row',
@@ -92,7 +83,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-    gap: 3,
   },
   activeCap: {
     position: 'absolute',
@@ -104,9 +94,5 @@ const styles = StyleSheet.create({
   },
   icon: {
     marginTop: 5,
-  },
-  label: {
-    fontSize: 9,
-    lineHeight: 12,
   },
 });
