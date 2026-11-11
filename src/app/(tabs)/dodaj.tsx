@@ -28,8 +28,12 @@ import {
 import { recogniseFragment } from '@/lib/ocr';
 import { tapLight } from '@/lib/haptics';
 import { getDeviceKey } from '@/lib/device';
-import { searchGoogleBooks, GoogleBook } from '@/lib/googleBooks';
-
+import {
+  COVER_COLORS,
+  GoogleBook,
+  googleBookToBook,
+  searchGoogleBooks,
+} from '@/lib/googleBooks';
 import { publishBook, publishFragment } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { normalizeText, plural } from '@/lib/utils';
@@ -39,7 +43,6 @@ import { fonts, useColors } from '@/theme';
 
 const MAX_REACTION = 200;
 const MAX_FRAGMENT = 500;
-const COVER_COLORS = ['#5B2A2E', '#1F3B34', '#2A3550', '#4A3B26', '#3E2F44', '#6B3A22', '#243C46'];
 
 const BLOCKED = ['nienawidzę cię', 'zabij się', 'kurwa mać'];
 
@@ -202,73 +205,11 @@ export default function AddScreen() {
   const selectGoogleBook = (gb: GoogleBook) => {
     const existing = state.books.find((b) => b.id === gb.id);
     if (!existing) {
-      const book: Book = {
-        id: gb.id,
-        title: gb.title,
-        author: gb.authors.join(', ') || 'autor nieznany',
-        genre: mapGoogleGenre(gb.categories),
-        moods: [],
-        year: parseGoogleYear(gb.publishedDate),
-        publisher: gb.publisher || 'wydanie własne',
-        pages: gb.pageCount || 0,
-        description:
-          gb.description?.slice(0, 300) ||
-          'Książka znaleziona przez Google Books.',
-        source: 'unverified',
-        color: COVER_COLORS[Math.abs(hashString(gb.id)) % COVER_COLORS.length],
-      };
-      dispatch({ type: 'ADD_BOOK', book });
+      dispatch({ type: 'ADD_BOOK', book: googleBookToBook(gb) });
     }
     setBookId(gb.id);
     setQuery('');
     setGoogleBooks([]);
-  };
-
-  const hashString = (s: string) => {
-    let hash = 0;
-    for (let i = 0; i < s.length; i++) {
-      hash = (hash << 5) - hash + s.charCodeAt(i);
-      hash |= 0;
-    }
-    return hash;
-  };
-
-  const mapGoogleGenre = (categories?: string[]): Genre => {
-    if (!categories?.length) return 'literatura piękna';
-    const map: Record<string, Genre> = {
-      fiction: 'literatura piękna',
-      'literature & fiction': 'literatura piękna',
-      literature: 'literatura piękna',
-      romance: 'romance',
-      thriller: 'thriller',
-      mystery: 'thriller',
-      crime: 'thriller',
-      fantasy: 'fantasy',
-      'science fiction': 'sci-fi',
-      'sci-fi': 'sci-fi',
-      horror: 'horror',
-      young_adult: 'YA',
-      ya: 'YA',
-      'young adult': 'YA',
-      biography: 'non-fiction',
-      history: 'non-fiction',
-      self_help: 'non-fiction',
-      business: 'non-fiction',
-      poetry: 'literatura piękna',
-      drama: 'literatura piękna',
-      classics: 'literatura piękna',
-    };
-    for (const cat of categories) {
-      const key = cat.toLowerCase().replace(/[&/\\]+/g, ' ').trim();
-      if (map[key]) return map[key];
-    }
-    return 'literatura piękna';
-  };
-
-  const parseGoogleYear = (publishedDate?: string): number => {
-    if (!publishedDate) return new Date().getFullYear();
-    const match = publishedDate.match(/\d{4}/);
-    return match ? Number(match[0]) : new Date().getFullYear();
   };
 
   const publish = async () => {
@@ -750,24 +691,7 @@ export default function AddScreen() {
                       { borderColor: active ? c.ink : c.rule },
                     ]}
                   >
-                    <Cover
-                      book={{
-                        id: item.id,
-                        title: item.title,
-                        author: item.authors.join(', '),
-                        genre: 'literatura piękna',
-                        moods: [],
-                        year: new Date().getFullYear(),
-                        publisher: item.publisher || 'wydanie własne',
-                        pages: item.pageCount || 0,
-                        description: item.description || '',
-                        source: 'unverified',
-                        color: '#4A4238',
-                        coverUrl:
-                          item.imageLinks?.thumbnail?.replace(/^http:/, 'https:') || undefined,
-                      }}
-                      width={40}
-                    />
+                    <Cover book={googleBookToBook(item)} width={40} />
                     <View style={{ flex: 1 }}>
                       <Txt variant="label" numberOfLines={1} color={c.ink}>
                         {item.title}
