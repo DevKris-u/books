@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Btn, Cover, Field, Pill, Rule, Sheet, Txt } from '@/components/ui';
+import { useAuth } from '@/lib/auth';
 import { formatDate, initials, timeAgo } from '@/lib/utils';
 import {
   favouriteGenres,
@@ -16,11 +17,14 @@ import { colors, fonts, useColors } from '@/theme';
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { state, dispatch } = useStore();
+  const { state, dispatch, reloadCatalog } = useStore();
+  const { user, updateProfile } = useAuth();
   const c = useColors();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(state.profile.name);
   const [handle, setHandle] = useState(state.profile.handle);
+  const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   const read = state.library.filter((i) => i.shelf === 'read').length;
   const streak = streakFrom(state.activityDays);
@@ -33,6 +37,40 @@ export default function ProfileScreen() {
     { label: 'polubione fragmenty', value: state.signals.likes },
     { label: 'dni z rzędu', value: streak },
   ];
+
+  const openEdit = () => {
+    setName(state.profile.name);
+    setHandle(state.profile.handle);
+    setEditError(null);
+    setEditing(true);
+  };
+
+  const saveProfile = async () => {
+    const cleanName = name.trim();
+    if (!cleanName || saving) return;
+    setSaving(true);
+    setEditError(null);
+    try {
+      if (user) {
+        await updateProfile({ name: cleanName, handle: handle.trim() });
+        dispatch({
+          type: 'UPDATE_PROFILE',
+          name: cleanName,
+          handle: handle.trim(),
+        });
+        void reloadCatalog();
+      } else {
+        dispatch({ type: 'UPDATE_PROFILE', name: cleanName, handle: handle.trim() });
+      }
+      setEditing(false);
+    } catch (caught) {
+      setEditError(
+        caught instanceof Error ? caught.message : 'Nie udało się zapisać profilu.',
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const styles = makeStyles(c);
 
@@ -60,11 +98,7 @@ export default function ProfileScreen() {
             </Txt>
           </View>
           <Pressable
-            onPress={() => {
-              setName(state.profile.name);
-              setHandle(state.profile.handle);
-              setEditing(true);
-            }}
+            onPress={openEdit}
             accessibilityRole="button"
             accessibilityLabel="Edytuj profil"
             style={styles.editBtn}
@@ -72,6 +106,35 @@ export default function ProfileScreen() {
             <Feather name="edit-3" size={14} color={c.inkMid} />
           </Pressable>
         </View>
+
+        {user ? (
+          <View style={styles.accountLine}>
+            <Feather name="check-circle" size={13} color={c.verified} />
+            <Txt variant="micro" color={c.inkSoft} numberOfLines={1} style={{ flex: 1 }}>
+              {user.email ?? 'konto Google'}
+            </Txt>
+          </View>
+        ) : (
+          <Pressable
+            onPress={() => router.push('/logowanie?next=/profil')}
+            accessibilityRole="button"
+            style={styles.signInCard}
+          >
+            <View style={{ flex: 1 }}>
+              <Txt variant="meta" color={c.brass}>
+                konto
+              </Txt>
+              <Txt variant="label" style={{ marginTop: 4 }}>
+                Podpisz swoje fragmenty
+              </Txt>
+              <Txt variant="small" color={c.inkMid} style={{ marginTop: 2 }}>
+                Zaloguj się przez Google, żeby wpisy były przypisane do Ciebie, nie do
+                urządzenia.
+              </Txt>
+            </View>
+            <Feather name="arrow-up-right" size={16} color={c.inkSoft} />
+          </Pressable>
+        )}
 
         <View style={styles.stats}>
           {stats.map((stat, index) => (
@@ -262,7 +325,10 @@ export default function ProfileScreen() {
 
       <Sheet
         visible={editing}
-        onClose={() => setEditing(false)}
+        onClose={() => {
+          setEditing(false);
+          setEditError(null);
+        }}
         title="Edytuj profil"
       >
         <Field label="Nazwa" value={name} onChangeText={setName} maxLength={40} />
@@ -274,14 +340,16 @@ export default function ProfileScreen() {
           maxLength={30}
           hint="Widoczna przy Twoich fragmentach."
         />
+        {editError ? (
+          <Txt variant="small" color={c.claret} style={{ marginTop: 12 }}>
+            {editError}
+          </Txt>
+        ) : null}
         <View style={{ height: 18 }} />
         <Btn
-          label="Zapisz zmiany"
-          disabled={!name.trim()}
-          onPress={() => {
-            dispatch({ type: 'UPDATE_PROFILE', name: name.trim(), handle: handle.trim() });
-            setEditing(false);
-          }}
+          label={saving ? 'Zapisujemy…' : 'Zapisz zmiany'}
+          disabled={!name.trim() || saving}
+          onPress={() => void saveProfile()}
         />
       </Sheet>
     </View>
@@ -326,6 +394,23 @@ function makeStyles(c: ReturnType<typeof useColors>) {
       borderColor: c.rule,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    accountLine: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginTop: 12,
+    },
+    signInCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginTop: 18,
+      borderWidth: 1,
+      borderColor: 'rgba(168,127,63,0.4)',
+      backgroundColor: c.brassTint,
+      borderRadius: 12,
+      padding: 14,
     },
     stats: {
       flexDirection: 'row',

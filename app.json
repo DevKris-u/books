@@ -29,7 +29,11 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -45,10 +49,28 @@
           "photosPermission": "Margines potrzebuje dostępu do zdjęć, aby dodać fragment ze strony książki.",
           "cameraPermission": "Margines potrzebuje aparatu, aby sfotografować stronę książki."
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": false
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "fa407bcf-bc08-4342-ade2-38e3043ac2ac"
+      }
+    },
+    "owner": "krisu0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/fa407bcf-bc08-4342-ade2-38e3043ac2ac"
     }
   }
 }

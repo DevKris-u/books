@@ -1,7 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -27,10 +27,14 @@ import {
 } from '@/data/types';
 import { recogniseFragment } from '@/lib/ocr';
 import { tapLight } from '@/lib/haptics';
+import { getDeviceKey } from '@/lib/device';
+import { searchGoogleBooks, GoogleBook } from '@/lib/googleBooks';
+import { publishBook, publishFragment } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
 import { normalizeText, plural } from '@/lib/utils';
 import { Candidate } from '@/lib/recommend';
 import { DAILY_POST_LIMIT, postsToday, useStore } from '@/state/store';
-import { colors, fonts, useColors } from '@/theme';
+import { fonts, useColors } from '@/theme';
 
 const MAX_REACTION = 200;
 const MAX_FRAGMENT = 500;
@@ -44,6 +48,7 @@ export default function AddScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { state, dispatch, bookById } = useStore();
+  const { user, loading: authLoading } = useAuth();
   const c = useColors();
   const styles = makeStyles(c);
 
@@ -59,12 +64,17 @@ export default function AddScreen() {
   const [pickerNote, setPickerNote] = useState<string | null>(null);
   const [bookId, setBookId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [googleBooks, setGoogleBooks] = useState<GoogleBook[]>([]);
+  const [googleSearchLoading, setGoogleSearchLoading] = useState(false);
+  const [googleSearchError, setGoogleSearchError] = useState<string | null>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newAuthor, setNewAuthor] = useState('');
   const [newPublisher, setNewPublisher] = useState('');
   const [newGenre, setNewGenre] = useState<Genre>('obyczajowa');
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [published, setPublished] = useState<'live' | 'moderation' | null>(null);
   const checkAnim = useRef(new Animated.Value(0)).current;
   const checkOpacity = useRef(new Animated.Value(0)).current;
@@ -119,20 +129,40 @@ export default function AddScreen() {
     }
   };
 
-  const searchResults = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    if (!needle) return state.books.filter((b) => b.source !== 'excluded').slice(0, 5);
-    return state.books
-      .filter((b) => b.source !== 'excluded')
-      .filter(
-        (b) =>
-          b.title.toLowerCase().includes(needle) ||
-          b.author.toLowerCase().includes(needle),
-      )
-      .slice(0, 8);
-  }, [query, state.books]);
+  useEffect(() => {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
 
-  const createBook = () => {
+    const needle = query.trim();
+    searchTimeoutRef.current = setTimeout(async () => {
+      if (!needle) {
+        setGoogleBooks([]);
+        setGoogleSearchError(null);
+        setGoogleSearchLoading(false);
+        return;
+      }
+
+      setGoogleSearchLoading(true);
+      setGoogleSearchError(null);
+      try {
+        const results = await searchGoogleBooks(needle, 20);
+        setGoogleBooks(results);
+      } catch (caught) {
+        setGoogleSearchError(
+          caught instanceof Error ? caught.message : 'Nie udało się wyszukać książek.',
+        );
+        setGoogleBooks([]);
+      } finally {
+        setGoogleSearchLoading(false);
+      }
+    }, 400);
+
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, [query]);
+
+  const createBook = async () => {
+    if (saving) return;
     if (!newTitle.trim() || !newAuthor.trim()) {
       setError('Do nowej książki potrzebujemy tytułu i autora.');
       return;
@@ -151,15 +181,97 @@ export default function AddScreen() {
       source: 'unverified',
       color: COVER_COLORS[state.books.length % COVER_COLORS.length],
     };
-    dispatch({ type: 'ADD_BOOK', book: created });
-    setBookId(id);
-    setCreating(false);
+    setSaving(true);
     setError(null);
-    setQuery('');
+    try {
+      await publishBook(created);
+      dispatch({ type: 'ADD_BOOK', book: created });
+      setBookId(id);
+      setCreating(false);
+      setQuery('');
+    } catch {
+      setError(
+        'Nie udało się dodać książki do bazy. Sprawdź połączenie i spróbuj ponownie.',
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const publish = () => {
-    if (!book || !purpose) return;
+  const selectGoogleBook = (gb: GoogleBook) => {
+    const existing = state.books.find((b) => b.id === gb.id);
+    if (!existing) {
+      const book: Book = {
+        id: gb.id,
+        title: gb.title,
+        author: gb.authors.join(', ') || 'autor nieznany',
+        genre: mapGoogleGenre(gb.categories),
+        moods: [],
+        year: parseGoogleYear(gb.publishedDate),
+        publisher: gb.publisher || 'wydanie własne',
+        pages: gb.pageCount || 0,
+        description:
+          gb.description?.slice(0, 300) ||
+          'Książka znaleziona przez Google Books.',
+        source: 'unverified',
+        color: COVER_COLORS[Math.abs(hashString(gb.id)) % COVER_COLORS.length],
+      };
+      dispatch({ type: 'ADD_BOOK', book });
+    }
+    setBookId(gb.id);
+    setQuery('');
+    setGoogleBooks([]);
+  };
+
+  const hashString = (s: string) => {
+    let hash = 0;
+    for (let i = 0; i < s.length; i++) {
+      hash = (hash << 5) - hash + s.charCodeAt(i);
+      hash |= 0;
+    }
+    return hash;
+  };
+
+  const mapGoogleGenre = (categories?: string[]): Genre => {
+    if (!categories?.length) return 'literatura piękna';
+    const map: Record<string, Genre> = {
+      fiction: 'literatura piękna',
+      'literature & fiction': 'literatura piękna',
+      literature: 'literatura piękna',
+      romance: 'romance',
+      thriller: 'thriller',
+      mystery: 'thriller',
+      crime: 'thriller',
+      fantasy: 'fantasy',
+      'science fiction': 'sci-fi',
+      'sci-fi': 'sci-fi',
+      horror: 'horror',
+      young_adult: 'YA',
+      ya: 'YA',
+      'young adult': 'YA',
+      biography: 'non-fiction',
+      history: 'non-fiction',
+      self_help: 'non-fiction',
+      business: 'non-fiction',
+      poetry: 'literatura piękna',
+      drama: 'literatura piękna',
+      classics: 'literatura piękna',
+    };
+    for (const cat of categories) {
+      const key = cat.toLowerCase().replace(/[&/\\]+/g, ' ').trim();
+      if (map[key]) return map[key];
+    }
+    return 'literatura piękna';
+  };
+
+  const parseGoogleYear = (publishedDate?: string): number => {
+    if (!publishedDate) return new Date().getFullYear();
+    const match = publishedDate.match(/\d{4}/);
+    return match ? Number(match[0]) : new Date().getFullYear();
+  };
+
+  const publish = async () => {
+    if (!book || !purpose || saving) return;
     const cleanText = text.trim();
     const cleanReaction = reaction.trim();
 
@@ -176,23 +288,32 @@ export default function AddScreen() {
       return;
     }
 
-    const fragment = {
-      id: `post-${Date.now()}`,
-      bookId: book.id,
-      text: cleanText,
-      reaction: cleanReaction,
-      tags,
-      page: page.trim() ? Number(page.trim()) : undefined,
-      purpose,
-      curator: { name: state.profile.name, handle: state.profile.handle },
-      createdAt: Date.now(),
-      likes: 0,
-      imageUri: imageUri ?? undefined,
-      mine: true,
-    };
-
-    dispatch({ type: 'ADD_POST', fragment });
-    setPublished('live');
+    setSaving(true);
+    setError(null);
+    try {
+      const deviceKey = state.deviceKey ?? (await getDeviceKey());
+      const fragment = await publishFragment(
+        {
+          bookId: book.id,
+          text: cleanText,
+          reaction: cleanReaction,
+          tags,
+          page: page.trim() ? Number(page.trim()) : undefined,
+          purpose,
+          curator: { name: state.profile.name, handle: state.profile.handle },
+          imageUri: imageUri ?? undefined,
+        },
+        { deviceKey, userId: user?.id ?? null },
+      );
+      dispatch({ type: 'ADD_POST', fragment });
+      setPublished('live');
+    } catch {
+      setError(
+        'Nie udało się opublikować fragmentu. Sprawdź połączenie i spróbuj ponownie.',
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   const reset = () => {
@@ -211,12 +332,14 @@ export default function AddScreen() {
     setError(null);
   };
 
-  const canNext = (() => {
-    if (step === 0) return reaction.trim().length > 0 && !!purpose && tags.length > 0;
-    if (step === 1) return text.trim().length > 0 && text.length <= MAX_FRAGMENT;
-    if (step === 2) return !!book;
-    return !!book && !!purpose;
-  })();
+  const canNext =
+    !saving &&
+    (() => {
+      if (step === 0) return reaction.trim().length > 0 && !!purpose && tags.length > 0;
+      if (step === 1) return text.trim().length > 0 && text.length <= MAX_FRAGMENT;
+      if (step === 2) return !!book;
+      return !!book && !!purpose;
+    })();
 
   const draft: Candidate | null =
     book && purpose
@@ -234,6 +357,56 @@ export default function AddScreen() {
           book,
         }
       : null;
+
+  if (authLoading) {
+    return (
+      <View style={[styles.root, { paddingTop: insets.top + 20, paddingHorizontal: 22 }]}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+          <ActivityIndicator size="small" color={c.claret} />
+          <Txt variant="small" color={c.inkSoft}>
+            Sprawdzamy konto…
+          </Txt>
+        </View>
+      </View>
+    );
+  }
+
+  if (!user) {
+    return (
+      <View style={[styles.root, { paddingTop: insets.top + 20, paddingHorizontal: 22 }]}>
+        <View style={{ flex: 1, justifyContent: 'center' }}>
+          <Txt variant="meta" color={c.inkSoft}>
+            publikowanie
+          </Txt>
+          <Txt style={[styles.doneTitle, { marginTop: 8 }]}>Najpierw konto.</Txt>
+          <Txt variant="body" color={c.inkMid} style={{ marginTop: 10, maxWidth: 340 }}>
+            Czytanie i przeglądanie nie wymagają logowania. Konto potrzebne jest tylko
+            wtedy, gdy chcesz zostawić swój fragment — żeby był podpisany Twoim imieniem,
+            nie numerem urządzenia.
+          </Txt>
+
+          <View style={styles.gateNote}>
+            <View style={{ width: 2, backgroundColor: c.brass, alignSelf: 'stretch' }} />
+            <Txt variant="small" color={c.inkSoft} style={{ flex: 1 }}>
+              Logujesz się przez Google. Nie dostajemy hasła, nie wysyłamy newslettera.
+            </Txt>
+          </View>
+
+          <View style={{ marginTop: 24, gap: 10 }}>
+            <Btn
+              label="Zaloguj się przez Google"
+              onPress={() => router.push('/logowanie?next=/dodaj')}
+            />
+            <Btn label="Wróć do czytania" variant="ghost" onPress={() => router.navigate('/')} />
+          </View>
+
+          <Txt variant="micro" color={c.inkSoft} style={{ marginTop: 18, lineHeight: 16 }}>
+            Konto możesz usunąć razem z wpisami w każdej chwili, z poziomu ustawień.
+          </Txt>
+        </View>
+      </View>
+    );
+  }
 
   if (published) {
     return (
@@ -548,48 +721,84 @@ export default function AddScreen() {
               autoCorrect={false}
             />
 
-            {searchResults.map((item) => {
-              const active = bookId === item.id;
-              return (
-                <Pressable
-                  key={item.id}
-                  onPress={() => setBookId(item.id)}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: active }}
-                  style={[
-                    styles.bookRow,
-                    { borderColor: active ? c.ink : c.rule },
-                  ]}
-                >
-                  <Cover book={item} width={36} />
-                  <View style={{ flex: 1 }}>
-                    <Txt variant="label" numberOfLines={1} color={c.ink}>
-                      {item.title}
-                    </Txt>
-                    <Txt variant="small" color={c.inkSoft} numberOfLines={1}>
-                      {item.author}
-                    </Txt>
-                  </View>
-                  {active ? (
-                    <Feather name="check" size={16} color={c.claret} />
-                  ) : (
-                    <View
-                      style={{
-                        width: 7,
-                        height: 7,
-                        borderRadius: 4,
-                        backgroundColor:
-                          item.source === 'licensed'
-                            ? c.verified
-                            : item.source === 'public'
-                              ? '#3E5A78'
-                              : c.inkSoft,
-                      }}
-                    />
-                  )}
-                </Pressable>
-              );
-            })}
+            {googleSearchLoading ? (
+              <View style={{ paddingVertical: 10, alignItems: 'center' }}>
+                <ActivityIndicator size="small" color={c.claret} />
+              </View>
+            ) : googleSearchError ? (
+              <Txt variant="small" color={c.claret} style={{ marginTop: 6 }}>
+                {googleSearchError}
+              </Txt>
+            ) : (
+              googleBooks.map((item) => {
+                const active = bookId === item.id;
+                return (
+                  <Pressable
+                    key={item.id}
+                    onPress={() => selectGoogleBook(item)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: active }}
+                    style={[
+                      styles.bookRow,
+                      { borderColor: active ? c.ink : c.rule },
+                    ]}
+                  >
+                    <View style={{ width: 36, height: 52 }}>
+                      {item.imageLinks?.thumbnail ? (
+                        <Image
+                          source={{ uri: item.imageLinks.thumbnail }}
+                          style={styles.photo}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <Cover
+                          book={{
+                            id: item.id,
+                            title: item.title,
+                            author: item.authors.join(', '),
+                            genre: 'literatura piękna',
+                            moods: [],
+                            year: new Date().getFullYear(),
+                            publisher: item.publisher || 'wydanie własne',
+                            pages: item.pageCount || 0,
+                            description: item.description || '',
+                            source: 'unverified',
+                            color: '#4A4238',
+                          }}
+                          width={36}
+                        />
+                      )}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Txt variant="label" numberOfLines={1} color={c.ink}>
+                        {item.title}
+                      </Txt>
+                      <Txt variant="small" color={c.inkSoft} numberOfLines={1}>
+                        {item.authors.join(', ') || 'autor nieznany'}
+                      </Txt>
+                    </View>
+                    {active ? (
+                      <Feather name="check" size={16} color={c.claret} />
+                    ) : (
+                      <View
+                        style={{
+                          width: 7,
+                          height: 7,
+                          borderRadius: 4,
+                          backgroundColor: c.inkSoft,
+                        }}
+                      />
+                    )}
+                  </Pressable>
+                );
+              })
+            )}
+
+            {!googleBooks.length && query.trim() ? (
+              <Txt variant="small" color={c.inkSoft} style={{ marginTop: 6 }}>
+                Nie znaleziono książek. Spróbuj innej frazy albo dodaj własną.
+              </Txt>
+            ) : null}
 
             {!creating ? (
               <Btn
@@ -731,7 +940,7 @@ export default function AddScreen() {
               setError(null);
               setStep(step + 1);
             } else {
-              publish();
+              void publish();
             }
           }}
           style={({ pressed }) => [
@@ -740,15 +949,25 @@ export default function AddScreen() {
             pressed && canNext ? styles.nextBtnPressed : null,
           ]}
         >
-          <Txt variant="label" color={canNext ? c.onDark : c.inkSoft} style={{ fontSize: 15 }}>
-            {step === 3 ? 'Opublikuj' : 'Dalej'}
-          </Txt>
-          <Feather
-            name={step === 3 ? 'check' : 'arrow-right'}
-            size={16}
-            color={canNext ? c.onDark : c.inkSoft}
-            style={{ marginLeft: 8 }}
-          />
+          {saving ? (
+            <ActivityIndicator size="small" color={c.onDark} />
+          ) : (
+            <>
+              <Txt
+                variant="label"
+                color={canNext ? c.onDark : c.inkSoft}
+                style={{ fontSize: 15 }}
+              >
+                {step === 3 ? 'Opublikuj' : 'Dalej'}
+              </Txt>
+              <Feather
+                name={step === 3 ? 'check' : 'arrow-right'}
+                size={16}
+                color={canNext ? c.onDark : c.inkSoft}
+                style={{ marginLeft: 8 }}
+              />
+            </>
+          )}
         </Pressable>
       </View>
     </KeyboardAvoidingView>
@@ -853,6 +1072,12 @@ function makeStyles(c: ReturnType<typeof useColors>) {
       borderTopColor: c.rule,
       paddingTop: 10,
       gap: 8,
+    },
+    gateNote: {
+      flexDirection: 'row',
+      gap: 10,
+      marginTop: 20,
+      paddingVertical: 2,
     },
     metaRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
     footer: {

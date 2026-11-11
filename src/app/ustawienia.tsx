@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Btn, Field, Rule, ScreenHeader, Sheet, Toggle, Txt } from '@/components/ui';
+import { useAuth } from '@/lib/auth';
 import { formatDate } from '@/lib/utils';
 import { hotPeakStatus, NotificationKey, useStore } from '@/state/store';
 import { fonts, useColors } from '@/theme';
@@ -39,14 +40,71 @@ const NOTIFICATIONS: { key: NotificationKey; label: string; hint: string }[] = [
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { state, dispatch } = useStore();
+  const { state, dispatch, reloadCatalog } = useStore();
+  const { user, signOut, deleteAccount, updateProfile } = useAuth();
   const c = useColors();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(state.profile.name);
   const [handle, setHandle] = useState(state.profile.handle);
   const [confirm, setConfirm] = useState<'logout' | 'delete' | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [accountBusy, setAccountBusy] = useState(false);
+  const [accountError, setAccountError] = useState<string | null>(null);
 
   const hot = hotPeakStatus(state);
+
+  const openEdit = () => {
+    setName(state.profile.name);
+    setHandle(state.profile.handle);
+    setEditError(null);
+    setEditing(true);
+  };
+
+  const saveProfile = async () => {
+    const cleanName = name.trim();
+    if (!cleanName || saving) return;
+    setSaving(true);
+    setEditError(null);
+    try {
+      if (user) {
+        await updateProfile({ name: cleanName, handle: handle.trim() });
+        void reloadCatalog();
+      }
+      dispatch({ type: 'UPDATE_PROFILE', name: cleanName, handle: handle.trim() });
+      setEditing(false);
+    } catch (caught) {
+      setEditError(
+        caught instanceof Error ? caught.message : 'Nie udało się zapisać profilu.',
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const runAccountAction = async () => {
+    if (!confirm || accountBusy) return;
+    setAccountBusy(true);
+    setAccountError(null);
+    try {
+      if (confirm === 'delete') {
+        await deleteAccount();
+        dispatch({ type: 'RESET' });
+        setConfirm(null);
+        router.replace('/onboarding');
+      } else {
+        await signOut();
+        setConfirm(null);
+        router.replace('/');
+      }
+    } catch (caught) {
+      setAccountError(
+        caught instanceof Error ? caught.message : 'Nie udało się wykonać operacji.',
+      );
+    } finally {
+      setAccountBusy(false);
+    }
+  };
 
   return (
     <View style={[styles.root, { paddingTop: insets.top, backgroundColor: c.paper }]}>
@@ -54,14 +112,25 @@ export default function SettingsScreen() {
         <ScreenHeader title="Ustawienia" onBack={() => router.back()} />
 
         <Section title="Profil">
+          {!user ? (
+            <Pressable
+              onPress={() => router.push('/logowanie?next=/ustawienia')}
+              accessibilityRole="button"
+              style={[styles.row, styles.rowBorder]}
+            >
+              <View style={{ flex: 1 }}>
+                <Txt variant="label">Zaloguj się przez Google</Txt>
+                <Txt variant="small" color={c.inkSoft} style={{ marginTop: 2 }}>
+                  Podpisz swoje fragmenty i miej je na każdym urządzeniu.
+                </Txt>
+              </View>
+              <Feather name="arrow-up-right" size={16} color={c.inkSoft} />
+            </Pressable>
+          ) : null}
           <Pressable
-            onPress={() => {
-              setName(state.profile.name);
-              setHandle(state.profile.handle);
-              setEditing(true);
-            }}
+            onPress={openEdit}
             accessibilityRole="button"
-            style={styles.row}
+            style={[styles.row, user ? styles.rowBorder : null]}
           >
             <View style={{ flex: 1 }}>
               <Txt variant="label">Edycja profilu</Txt>
@@ -74,8 +143,11 @@ export default function SettingsScreen() {
           <Row
             label="Dołączenie"
             value={formatDate(state.profile.joinedAt)}
-            last
+            last={!user}
           />
+          {user ? (
+            <Row label="Konto Google" value={user.email ?? 'połączone'} last />
+          ) : null}
         </Section>
 
         <Section title="Powiadomienia">
@@ -149,28 +221,36 @@ export default function SettingsScreen() {
           </View>
         </Section>
 
-        <Section title="Konto">
-          <Pressable
-            onPress={() => setConfirm('logout')}
-            accessibilityRole="button"
-            style={styles.row}
-          >
-            <Txt variant="label" style={{ flex: 1 }}>
-              Wyloguj
-            </Txt>
-            <Feather name="log-out" size={16} color={c.inkMid} />
-          </Pressable>
-          <Pressable
-            onPress={() => setConfirm('delete')}
-            accessibilityRole="button"
-            style={[styles.row, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.rule }]}
-          >
-            <Txt variant="label" color={c.claret} style={{ flex: 1 }}>
-              Usuń konto
-            </Txt>
-            <Feather name="trash-2" size={16} color={c.claret} />
-          </Pressable>
-        </Section>
+        {user ? (
+          <Section title="Konto">
+            <Pressable
+              onPress={() => {
+                setAccountError(null);
+                setConfirm('logout');
+              }}
+              accessibilityRole="button"
+              style={styles.row}
+            >
+              <Txt variant="label" style={{ flex: 1 }}>
+                Wyloguj
+              </Txt>
+              <Feather name="log-out" size={16} color={c.inkMid} />
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                setAccountError(null);
+                setConfirm('delete');
+              }}
+              accessibilityRole="button"
+              style={[styles.row, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.rule }]}
+            >
+              <Txt variant="label" color={c.claret} style={{ flex: 1 }}>
+                Usuń konto
+              </Txt>
+              <Feather name="trash-2" size={16} color={c.claret} />
+            </Pressable>
+          </Section>
+        ) : null}
 
         <Txt variant="micro" color={c.inkSoft} style={{ marginTop: 26, lineHeight: 17 }}>
           Powiadomienia są opcjonalne. Margines nie wysyła ich częściej niż raz dziennie, a
@@ -178,7 +258,14 @@ export default function SettingsScreen() {
         </Txt>
       </ScrollView>
 
-      <Sheet visible={editing} onClose={() => setEditing(false)} title="Edycja profilu">
+      <Sheet
+        visible={editing}
+        onClose={() => {
+          setEditing(false);
+          setEditError(null);
+        }}
+        title="Edycja profilu"
+      >
         <Field label="Nazwa" value={name} onChangeText={setName} maxLength={40} />
         <View style={{ height: 14 }} />
         <Field
@@ -187,42 +274,62 @@ export default function SettingsScreen() {
           onChangeText={(value) => setHandle(value.replace(/\s/g, '').toLowerCase())}
           maxLength={30}
         />
+        {editError ? (
+          <Txt variant="small" color={c.claret} style={{ marginTop: 12 }}>
+            {editError}
+          </Txt>
+        ) : null}
         <View style={{ height: 18 }} />
         <Btn
-          label="Zapisz"
-          disabled={!name.trim()}
-          onPress={() => {
-            dispatch({ type: 'UPDATE_PROFILE', name: name.trim(), handle: handle.trim() });
-            setEditing(false);
-          }}
+          label={saving ? 'Zapisujemy…' : 'Zapisz'}
+          disabled={!name.trim() || saving}
+          onPress={() => void saveProfile()}
         />
       </Sheet>
 
-      <Sheet visible={!!confirm} onClose={() => setConfirm(null)}>
+      <Sheet
+        visible={!!confirm}
+        onClose={() => {
+          if (accountBusy) return;
+          setConfirm(null);
+          setAccountError(null);
+        }}
+      >
         <Txt variant="title" style={{ marginBottom: 8 }}>
           {confirm === 'delete' ? 'Usunąć konto?' : 'Wylogować się?'}
         </Txt>
         <Txt variant="body" color={c.inkMid} style={{ marginBottom: 20 }}>
           {confirm === 'delete'
-            ? 'Usuniemy Twoje wpisy, bibliotekę i preferencje. Tej operacji nie można cofnąć.'
-            : 'Wrócisz do ekranu powitalnego. Twoje półki i wpisy zostaną na urządzeniu.'}
+            ? 'Usuniemy Twoje konto, profil i wszystkie opublikowane fragmenty. Tej operacji nie można cofnąć.'
+            : 'Wrócisz do trybu gościa. Twoje wpisy zostaną na koncie — zobaczysz je po ponownym zalogowaniu.'}
         </Txt>
+        {accountError ? (
+          <Txt variant="small" color={c.claret} style={{ marginBottom: 14 }}>
+            {accountError}
+          </Txt>
+        ) : null}
         <Btn
-          label={confirm === 'delete' ? 'Usuń konto' : 'Wyloguj'}
+          label={
+            accountBusy
+              ? 'Chwileczkę…'
+              : confirm === 'delete'
+                ? 'Usuń konto'
+                : 'Wyloguj'
+          }
           variant="accent"
-          onPress={() => {
-            const mode = confirm;
-            setConfirm(null);
-            if (mode === 'delete') {
-              dispatch({ type: 'RESET' });
-            } else {
-              dispatch({ type: 'LOGOUT' });
-            }
-            router.replace('/onboarding');
-          }}
+          disabled={accountBusy}
+          onPress={() => void runAccountAction()}
         />
         <View style={{ height: 10 }} />
-        <Btn label="Zostaw mnie tutaj" variant="quiet" onPress={() => setConfirm(null)} />
+        <Btn
+          label="Zostaw mnie tutaj"
+          variant="quiet"
+          disabled={accountBusy}
+          onPress={() => {
+            setConfirm(null);
+            setAccountError(null);
+          }}
+        />
       </Sheet>
     </View>
   );

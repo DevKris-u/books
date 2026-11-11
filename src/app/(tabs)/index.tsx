@@ -1,7 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CardMenu } from '@/components/CardMenu';
 import { LikeSheet } from '@/components/LikeSheet';
@@ -19,7 +19,7 @@ type Focus = { bookId?: string; tag?: EmotionTag } | null;
 export default function FeedScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { state, dispatch } = useStore();
+  const { state, dispatch, reloadCatalog } = useStore();
   const c = useColors();
   const deckRef = useRef<SwipeDeckHandle>(null);
   const stateRef = useRef(state);
@@ -41,6 +41,7 @@ export default function FeedScreen() {
   }, [
     focus,
     state.hydrated,
+    state.catalogStatus,
     state.posts.length,
     state.reported.length,
     state.hiddenAuthors.length,
@@ -159,7 +160,32 @@ export default function FeedScreen() {
         ) : null}
 
         <View style={{ flex: 1, paddingVertical: 32 }}>
-          {done ? (
+          {state.catalogStatus === 'loading' && state.fragments.length === 0 ? (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 14 }}>
+              <ActivityIndicator color={c.claret} />
+              <Txt variant="small" color={c.inkMid}>
+                Układamy feed z bazy Marginesu…
+              </Txt>
+            </View>
+          ) : state.catalogStatus === 'error' && state.fragments.length === 0 ? (
+            <View style={{ flex: 1, justifyContent: 'center' }}>
+              <EmptyState
+                centered
+                icon="wifi-off"
+                title="Feed się nie wczytał."
+                body="Nie mogliśmy połączyć się z bazą fragmentów. Sprawdź połączenie z internetem i spróbuj jeszcze raz."
+                action={
+                  <Btn
+                    label="Spróbuj ponownie"
+                    variant="primary"
+                    icon="refresh-cw"
+                    full={false}
+                    onPress={() => void reloadCatalog()}
+                  />
+                }
+              />
+            </View>
+          ) : done ? (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
               <EmptyState
                 centered

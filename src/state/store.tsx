@@ -5,9 +5,9 @@ import React, {
   useEffect,
   useMemo,
   useReducer,
+  useRef,
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { seedBooks, seedFragments } from '@/data/seed';
 import {
   Book,
   EmotionTag,
@@ -17,6 +17,9 @@ import {
   Mood,
   Shelf,
 } from '@/data/types';
+import { fetchCatalog } from '@/lib/api';
+import { getDeviceKey } from '@/lib/device';
+import { supabase } from '@/lib/supabase';
 
 const STORAGE_KEY = 'margines:state:v1';
 const DAY = 24 * 60 * 60 * 1000;
@@ -50,6 +53,8 @@ export type Prefs = {
 
 export type Theme = 'light' | 'dark';
 
+export type CatalogStatus = 'loading' | 'ready' | 'error';
+
 export type State = {
   hydrated: boolean;
   onboarded: boolean;
@@ -63,6 +68,9 @@ export type State = {
   books: Book[];
   fragments: Fragment[];
   posts: Fragment[];
+  catalogStatus: CatalogStatus;
+  catalogError: string | null;
+  deviceKey: string | null;
   hiddenAuthors: string[];
   reported: string[];
   activityDays: string[];
@@ -98,9 +106,12 @@ const initialState: State = {
   seen: {},
   lastAction: null,
   library: [],
-  books: seedBooks,
-  fragments: seedFragments,
+  books: [],
+  fragments: [],
   posts: [],
+  catalogStatus: 'loading',
+  catalogError: null,
+  deviceKey: null,
   hiddenAuthors: [],
   reported: [],
   activityDays: [1, 2, 3, 4].map(daysAgo),
@@ -122,6 +133,10 @@ const initialState: State = {
 type Action =
   | { type: 'HYDRATE'; state: Partial<State> }
   | { type: 'ONBOARD'; prefs: Prefs }
+  | { type: 'CATALOG_LOADING' }
+  | { type: 'SET_CATALOG'; books: Book[]; fragments: Fragment[] }
+  | { type: 'CATALOG_ERROR'; error: string }
+  | { type: 'SET_DEVICE_KEY'; deviceKey: string }
   | { type: 'SWIPE'; fragmentId: string; dir: 'like' | 'pass'; dwellMs: number }
   | { type: 'UNDO' }
   | { type: 'ADD_TO_WANT'; bookId: string }
@@ -135,7 +150,7 @@ type Action =
   | { type: 'CONSUME_HOT' }
   | { type: 'WATCH_AD' }
   | { type: 'TOGGLE_NOTIFICATION'; key: NotificationKey }
-  | { type: 'UPDATE_PROFILE'; name: string; handle?: string }
+  | { type: 'UPDATE_PROFILE'; name: string; handle?: string; joinedAt?: string }
   | { type: 'SET_THEME'; theme: Theme }
   | { type: 'ADD_BOOK'; book: Book }
   | { type: 'EXCLUDE_TITLE'; title: string }
@@ -182,10 +197,56 @@ function markActivity(state: State): Pick<State, 'activityDays'> {
   return { activityDays: [...state.activityDays, key] };
 }
 
+/**
+ * The catalogue lives in Postgres; the device only keeps books it created
+ * locally (imports) and any title hidden on this device. Everything else is
+ * replaced by the server copy so two devices always see the same feed.
+ */
+function mergeBooks(incoming: Book[], local: Book[]): Book[] {
+  const localById = new Map(local.map((book) => [book.id, book]));
+  const incomingIds = new Set(incoming.map((book) => book.id));
+  const merged = incoming.map((book) => {
+    const existing = localById.get(book.id);
+    return existing?.source === 'excluded' ? { ...book, source: 'excluded' as const } : book;
+  });
+  const localOnly = local.filter(
+    (book) =>
+      !incomingIds.has(book.id) &&
+      (book.id.startsWith('import:') || book.id.startsWith('user-')),
+  );
+  return [...localOnly, ...merged];
+}
+
 function reducer(state: State, action: Action): State {
   switch (action.type) {
-    case 'HYDRATE':
-      return { ...state, ...action.state, hydrated: true };
+    case 'HYDRATE': {
+      const persisted = action.state;
+      return {
+        ...state,
+        ...persisted,
+        books: persisted.books?.length ? mergeBooks(persisted.books, state.books) : state.books,
+        hydrated: true,
+      };
+    }
+
+    case 'CATALOG_LOADING':
+      return { ...state, catalogStatus: 'loading', catalogError: null };
+
+    case 'SET_CATALOG':
+      return {
+        ...state,
+        books: mergeBooks(action.books, state.books),
+        fragments: action.fragments,
+        posts: action.fragments.filter((fragment) => fragment.mine),
+        catalogStatus: 'ready',
+        catalogError: null,
+      };
+
+    case 'CATALOG_ERROR':
+      return { ...state, catalogStatus: 'error', catalogError: action.error };
+
+    case 'SET_DEVICE_KEY':
+      return { ...state, deviceKey: action.deviceKey };
 
     case 'ONBOARD': {
       const signals: Signals = {
@@ -415,6 +476,7 @@ function reducer(state: State, action: Action): State {
           ...state.profile,
           name: action.name,
           handle: action.handle?.trim() || state.profile.handle,
+          joinedAt: action.joinedAt ?? state.profile.joinedAt,
         },
       };
 
@@ -449,7 +511,16 @@ function reducer(state: State, action: Action): State {
       return { ...state, onboarded: false };
 
     case 'RESET':
-      return { ...initialState, hydrated: true };
+      return {
+        ...initialState,
+        hydrated: true,
+        books: state.books,
+        fragments: state.fragments,
+        posts: state.posts,
+        catalogStatus: state.catalogStatus,
+        catalogError: null,
+        deviceKey: state.deviceKey,
+      };
 
     default:
       return state;
@@ -462,22 +533,38 @@ type StoreValue = {
   bookById: (id: string) => Book | undefined;
   fragmentById: (id: string) => Fragment | undefined;
   libraryItem: (bookId: string) => LibraryItem | undefined;
+  reloadCatalog: () => Promise<void>;
 };
 
 const StoreContext = createContext<StoreValue | null>(null);
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const userIdRef = useRef<string | null>(null);
+  const authLoadedRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
-        const parsed = raw ? (JSON.parse(raw) as State) : null;
-        if (!cancelled) {
-          dispatch({ type: 'HYDRATE', state: parsed ?? {} });
+        const parsed = raw ? (JSON.parse(raw) as Partial<State>) : null;
+        if (!parsed) {
+          if (!cancelled) dispatch({ type: 'HYDRATE', state: {} });
+          return;
         }
+        // The catalogue is fetched from Postgres on every launch; keeping a
+        // stale copy on disk would make the feed drift between devices.
+        const {
+          hydrated: _hydrated,
+          fragments: _fragments,
+          posts: _posts,
+          catalogStatus: _status,
+          catalogError: _error,
+          deviceKey: _deviceKey,
+          ...persisted
+        } = parsed;
+        if (!cancelled) dispatch({ type: 'HYDRATE', state: persisted });
       } catch {
         if (!cancelled) dispatch({ type: 'HYDRATE', state: {} });
       }
@@ -487,10 +574,65 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  const reloadCatalog = useCallback(async () => {
+    dispatch({ type: 'CATALOG_LOADING' });
+    try {
+      const deviceKey = await getDeviceKey();
+      dispatch({ type: 'SET_DEVICE_KEY', deviceKey });
+      const catalog = await fetchCatalog(deviceKey, userIdRef.current);
+      dispatch({ type: 'SET_CATALOG', books: catalog.books, fragments: catalog.fragments });
+    } catch (error) {
+      dispatch({
+        type: 'CATALOG_ERROR',
+        error:
+          error instanceof Error && error.message
+            ? error.message
+            : 'Nie udało się połączyć z bazą Marginesu.',
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    const applyUser = (id: string | null) => {
+      if (!active) return;
+      if (authLoadedRef.current && userIdRef.current === id) return;
+      authLoadedRef.current = true;
+      userIdRef.current = id;
+      // Defer the query: Supabase holds a lock while auth callbacks run.
+      setTimeout(() => {
+        if (active) void reloadCatalog();
+      }, 0);
+    };
+
+    supabase.auth
+      .getSession()
+      .then(({ data }) => applyUser(data.session?.user.id ?? null))
+      .catch(() => applyUser(null));
+
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      applyUser(session?.user.id ?? null);
+    });
+
+    return () => {
+      active = false;
+      data.subscription.unsubscribe();
+    };
+  }, [reloadCatalog]);
+
   useEffect(() => {
     if (!state.hydrated) return;
     const timer = setTimeout(() => {
-      const { hydrated, ...persisted } = state;
+      const {
+        hydrated: _hydrated,
+        fragments: _fragments,
+        posts: _posts,
+        catalogStatus: _status,
+        catalogError: _error,
+        deviceKey: _deviceKey,
+        ...persisted
+      } = state;
       AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(persisted)).catch(() => {});
     }, 250);
     return () => clearTimeout(timer);
@@ -510,8 +652,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ state, dispatch, bookById, fragmentById, libraryItem }),
-    [state, bookById, fragmentById, libraryItem],
+    () => ({ state, dispatch, bookById, fragmentById, libraryItem, reloadCatalog }),
+    [state, bookById, fragmentById, libraryItem, reloadCatalog],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

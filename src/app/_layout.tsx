@@ -18,6 +18,7 @@ import {
   Literata_700Bold,
 } from '@expo-google-fonts/literata';
 import { StoreProvider, useStore } from '@/state/store';
+import { AuthProvider } from '@/lib/auth';
 import { ThemeProvider, useColors, fonts, lightColors, darkColors } from '@/theme';
 import { Txt } from '@/components/ui';
 
@@ -39,7 +40,9 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <StoreProvider>
-        <AppBody />
+        <AuthProvider>
+          <AppBody />
+        </AuthProvider>
       </StoreProvider>
     </SafeAreaProvider>
   );
@@ -81,6 +84,11 @@ function RootStack({ theme }: { theme: 'light' | 'dark' }) {
       <Stack.Screen name="ksiazka/[id]" />
       <Stack.Screen name="ustawienia" />
       <Stack.Screen name="panel-wydawcy" />
+      <Stack.Screen name="logowanie" options={{ animation: 'slide_from_bottom' }} />
+      <Stack.Screen
+        name="auth-callback"
+        options={{ animation: 'fade', gestureEnabled: false }}
+      />
     </Stack>
   );
 }
