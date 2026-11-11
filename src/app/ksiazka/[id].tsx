@@ -1,6 +1,6 @@
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ShopSheet } from '@/components/ShopSheet';
@@ -15,6 +15,7 @@ import {
   Txt,
 } from '@/components/ui';
 import { SHELF_LABEL, Shelf, SOURCE_LABEL } from '@/data/types';
+import { fetchIsbnDescription } from '@/lib/isbnMeta';
 import { plural } from '@/lib/utils';
 import { useStore } from '@/state/store';
 import { fonts, useColors } from '@/theme';
@@ -40,6 +41,21 @@ export default function BookScreen() {
   );
 
   const styles = makeStyles(c);
+
+  // National Library records have no annotation, so it is fetched by ISBN the
+  // first time the book is opened.
+  useEffect(() => {
+    if (!book?.isbn || book.description) return;
+    let active = true;
+    void fetchIsbnDescription(book.isbn).then((description) => {
+      if (active && description) {
+        dispatch({ type: 'UPDATE_BOOK', bookId: book.id, patch: { description } });
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [book?.id, book?.isbn, book?.description, dispatch]);
 
   if (!book) {
     return (
@@ -154,7 +170,7 @@ export default function BookScreen() {
         )}
 
         <Txt variant="body" color={c.inkMid} style={{ marginTop: 20 }}>
-          {book.description}
+          {book.description || 'Nie mamy jeszcze opisu tej książki.'}
         </Txt>
 
         <Pressable

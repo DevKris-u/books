@@ -51,8 +51,7 @@ export type Book = {
   source: Source;
   color: string;
   coverUrl?: string;
-  /** False when the source API explicitly reported no cover artwork. */
-  hasCover?: boolean;
+  isbn?: string;
 };
 
 export type Fragment = {

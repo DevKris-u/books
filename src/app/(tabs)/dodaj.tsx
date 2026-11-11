@@ -28,12 +28,8 @@ import {
 import { recogniseFragment } from '@/lib/ocr';
 import { tapLight } from '@/lib/haptics';
 import { getDeviceKey } from '@/lib/device';
-import {
-  COVER_COLORS,
-  GoogleBook,
-  googleBookToBook,
-  searchGoogleBooks,
-} from '@/lib/googleBooks';
+import { COVER_COLORS, searchBnBooks } from '@/lib/bnBooks';
+import { fetchIsbnDescription } from '@/lib/isbnMeta';
 import { publishBook, publishFragment } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { normalizeText, plural } from '@/lib/utils';
@@ -68,9 +64,9 @@ export default function AddScreen() {
   const [pickerNote, setPickerNote] = useState<string | null>(null);
   const [bookId, setBookId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
-  const [googleBooks, setGoogleBooks] = useState<GoogleBook[]>([]);
-  const [googleSearchLoading, setGoogleSearchLoading] = useState(false);
-  const [googleSearchError, setGoogleSearchError] = useState<string | null>(null);
+  const [searchResults, setSearchResults] = useState<Book[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -139,24 +135,24 @@ export default function AddScreen() {
     const needle = query.trim();
     searchTimeoutRef.current = setTimeout(async () => {
       if (!needle) {
-        setGoogleBooks([]);
-        setGoogleSearchError(null);
-        setGoogleSearchLoading(false);
+        setSearchResults([]);
+        setSearchError(null);
+        setSearchLoading(false);
         return;
       }
 
-      setGoogleSearchLoading(true);
-      setGoogleSearchError(null);
+      setSearchLoading(true);
+      setSearchError(null);
       try {
-        const results = await searchGoogleBooks(needle, 20);
-        setGoogleBooks(results);
+        const results = await searchBnBooks(needle, 20);
+        setSearchResults(results);
       } catch (caught) {
-        setGoogleSearchError(
+        setSearchError(
           caught instanceof Error ? caught.message : 'Nie udało się wyszukać książek.',
         );
-        setGoogleBooks([]);
+        setSearchResults([]);
       } finally {
-        setGoogleSearchLoading(false);
+        setSearchLoading(false);
       }
     }, 400);
 
@@ -202,14 +198,22 @@ export default function AddScreen() {
     }
   };
 
-  const selectGoogleBook = (gb: GoogleBook) => {
-    const existing = state.books.find((b) => b.id === gb.id);
+  const selectSearchBook = (candidate: Book) => {
+    const existing = state.books.find((b) => b.id === candidate.id);
     if (!existing) {
-      dispatch({ type: 'ADD_BOOK', book: googleBookToBook(gb) });
+      dispatch({ type: 'ADD_BOOK', book: candidate });
     }
-    setBookId(gb.id);
+    setBookId(candidate.id);
     setQuery('');
-    setGoogleBooks([]);
+    setSearchResults([]);
+    // BN records carry no annotation; pull it by ISBN for later screens.
+    if (candidate.isbn) {
+      void fetchIsbnDescription(candidate.isbn).then((description) => {
+        if (description) {
+          dispatch({ type: 'UPDATE_BOOK', bookId: candidate.id, patch: { description } });
+        }
+      });
+    }
   };
 
   const publish = async () => {
@@ -658,7 +662,7 @@ export default function AddScreen() {
                 Jakiej książki?
               </Txt>
               <Txt variant="small" color={c.inkSoft} style={{ marginTop: 4 }}>
-                Szukamy po tytule i autorze. Jeśli jej nie ma, dodaj ją — to 20 sekund.
+                Szukamy w katalogu Biblioteki Narodowej. Jeśli jej nie ma, dodaj ją — to 20 sekund.
               </Txt>
             </View>
 
@@ -669,21 +673,21 @@ export default function AddScreen() {
               autoCorrect={false}
             />
 
-            {googleSearchLoading ? (
+            {searchLoading ? (
               <View style={{ paddingVertical: 10, alignItems: 'center' }}>
                 <ActivityIndicator size="small" color={c.claret} />
               </View>
-            ) : googleSearchError ? (
+            ) : searchError ? (
               <Txt variant="small" color={c.claret} style={{ marginTop: 6 }}>
-                {googleSearchError}
+                {searchError}
               </Txt>
             ) : (
-              googleBooks.map((item) => {
+              searchResults.map((item) => {
                 const active = bookId === item.id;
                 return (
                   <Pressable
                     key={item.id}
-                    onPress={() => selectGoogleBook(item)}
+                    onPress={() => selectSearchBook(item)}
                     accessibilityRole="radio"
                     accessibilityState={{ selected: active }}
                     style={[
@@ -691,13 +695,13 @@ export default function AddScreen() {
                       { borderColor: active ? c.ink : c.rule },
                     ]}
                   >
-                    <Cover book={googleBookToBook(item)} width={40} />
+                    <Cover book={item} width={40} />
                     <View style={{ flex: 1 }}>
                       <Txt variant="label" numberOfLines={1} color={c.ink}>
                         {item.title}
                       </Txt>
                       <Txt variant="small" color={c.inkSoft} numberOfLines={1}>
-                        {item.authors.join(', ') || 'autor nieznany'}
+                        {item.author}
                       </Txt>
                     </View>
                     {active ? (
@@ -717,7 +721,7 @@ export default function AddScreen() {
               })
             )}
 
-            {!googleBooks.length && query.trim() ? (
+            {!searchResults.length && query.trim() ? (
               <Txt variant="small" color={c.inkSoft} style={{ marginTop: 6 }}>
                 Nie znaleziono książek. Spróbuj innej frazy albo dodaj własną.
               </Txt>

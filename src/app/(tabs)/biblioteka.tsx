@@ -35,11 +35,18 @@ import {
   Shelf,
 } from '@/data/types';
 import { plural } from '@/lib/utils';
-import { GoogleBook, googleBookToBook, searchGoogleBooks } from '@/lib/googleBooks';
+import { searchBnBooks } from '@/lib/bnBooks';
+import { fetchIsbnDescription } from '@/lib/isbnMeta';
 import { useStore } from '@/state/store';
 import { colors, fonts, useColors } from '@/theme';
 
 const SHELVES: Shelf[] = ['want', 'reading', 'read'];
+
+const bookSignature = (book: { title: string; author: string }) =>
+  `${book.title.toLowerCase()}|${book.author.toLowerCase()}`;
+
+const sameBook = (a: Book, b: Book) =>
+  a.id === b.id || (!!a.isbn && a.isbn === b.isbn) || bookSignature(a) === bookSignature(b);
 
 export default function LibraryScreen() {
   const insets = useSafeAreaInsets();
@@ -58,31 +65,31 @@ export default function LibraryScreen() {
   const [progressDraft, setProgressDraft] = useState('');
   const [ratingDraft, setRatingDraft] = useState(0);
   const [noteDraft, setNoteDraft] = useState('');
-  const [googleResult, setGoogleResult] = useState<{ query: string; books: GoogleBook[] }>({
+  const [searchResult, setSearchResult] = useState<{ query: string; books: Book[] }>({
     query: '',
     books: [],
   });
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const [googleError, setGoogleError] = useState<string | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
-  // Reuses the Google Books client from the add-fragment flow. The debounce
+  // Reuses the National Library client from the add-fragment flow. The debounce
   // keeps a request from going out on every keystroke.
   useEffect(() => {
     const term = query.trim();
     if (term.length < 2) return;
     const timer = setTimeout(async () => {
-      setGoogleLoading(true);
-      setGoogleError(null);
+      setSearchLoading(true);
+      setSearchError(null);
       try {
-        const books = await searchGoogleBooks(term, 12);
-        setGoogleResult({ query: term, books });
+        const books = await searchBnBooks(term, 12);
+        setSearchResult({ query: term, books });
       } catch (caught) {
-        setGoogleError(
-          caught instanceof Error ? caught.message : 'Nie udało się wyszukać w Google Books.',
+        setSearchError(
+          caught instanceof Error ? caught.message : 'Nie udało się wyszukać w Bibliotece Narodowej.',
         );
-        setGoogleResult({ query: term, books: [] });
+        setSearchResult({ query: term, books: [] });
       } finally {
-        setGoogleLoading(false);
+        setSearchLoading(false);
       }
     }, 450);
     return () => clearTimeout(timer);
@@ -105,19 +112,19 @@ export default function LibraryScreen() {
   const needle = query.trim().toLowerCase();
   const searchActive = needle.length > 0 || !!genre || !!mood;
 
-  // Google Books results come from the same client the add-fragment flow uses;
-  // ids already in the catalogue are dropped because the local rows show them.
-  const googleRows: { book: Book; google: GoogleBook }[] =
-    googleResult.query === query.trim()
-      ? googleResult.books
-          .filter((gb) => !state.books.some((book) => book.id === gb.id))
-          .map((gb) => ({ book: googleBookToBook(gb), google: gb }))
-          .filter((row) => (genre ? row.book.genre === genre : true))
+  // BN results come from the same client the add-fragment flow uses. Books
+  // already in the catalogue are dropped because the local rows show them.
+  const searchRows: { book: Book; external?: boolean }[] =
+    searchResult.query === query.trim()
+      ? searchResult.books
+          .filter((candidate) => !state.books.some((known) => sameBook(known, candidate)))
+          .filter((candidate) => (genre ? candidate.genre === genre : true))
+          .map((candidate) => ({ book: candidate, external: true }))
       : [];
 
   // Searching and filtering run over the whole catalogue, so a reader can find
   // a book that is not on their shelves yet. Shelves only scope the plain list.
-  const items: { book: Book; item?: LibraryItem; google?: GoogleBook }[] = searchActive
+  const items: { book: Book; item?: LibraryItem; external?: boolean }[] = searchActive
     ? [
         ...state.books
           .filter((book) => book.source !== 'excluded')
@@ -132,7 +139,7 @@ export default function LibraryScreen() {
           .filter((book) => (genre ? book.genre === genre : true))
           .filter((book) => (mood ? book.moods.includes(mood) : true))
           .map((book) => ({ book, item: state.library.find((i) => i.bookId === book.id) })),
-        ...(needle.length >= 2 ? googleRows : []),
+        ...(needle.length >= 2 ? searchRows : []),
       ]
     : all
         .filter((entry) => entry.item.shelf === shelf)
@@ -150,14 +157,27 @@ export default function LibraryScreen() {
   const shelfEmpty = all.filter((entry) => entry.item.shelf === shelf).length === 0;
   const styles = makeStyles(c);
 
-  const openGoogleBook = (book: Book) => {
+  // The National Library record has no annotation; fetch it by ISBN as soon as
+  // the reader shows interest, so the book screen has something to show.
+  const hydrateDescription = (book: Book) => {
+    if (!book.isbn) return;
+    void fetchIsbnDescription(book.isbn).then((description) => {
+      if (description) {
+        dispatch({ type: 'UPDATE_BOOK', bookId: book.id, patch: { description } });
+      }
+    });
+  };
+
+  const openBook = (book: Book) => {
     dispatch({ type: 'ADD_BOOK', book });
+    hydrateDescription(book);
     router.push(`/ksiazka/${book.id}`);
   };
 
   const addToLibrary = (book: Book) => {
     dispatch({ type: 'ADD_BOOK', book });
     dispatch({ type: 'ADD_TO_WANT', bookId: book.id });
+    hydrateDescription(book);
   };
 
   return (
@@ -249,7 +269,7 @@ export default function LibraryScreen() {
         >
           {items.length === 0 ? (
             searchActive ? (
-              !googleLoading && !googleError ? (
+              !searchLoading && !searchError ? (
               <EmptyState
                 centered
                 icon="search"
@@ -307,15 +327,15 @@ export default function LibraryScreen() {
               />
             )
           ) : (
-            items.map(({ item, book, google }, index) => (
+            items.map(({ item, book, external }, index) => (
               <View key={book.id}>
-                {google && !items[index - 1]?.google ? (
-                  <View style={styles.googleHead}>
+                {external && !items[index - 1]?.external ? (
+                  <View style={styles.searchHead}>
                     <Txt variant="meta" color={c.inkSoft}>
-                      z Google Books
+                      z Biblioteki Narodowej
                     </Txt>
                     <Txt variant="meta" color={c.inkSoft}>
-                      {items.filter((entry) => entry.google).length}
+                      {items.filter((entry) => entry.external).length}
                     </Txt>
                   </View>
                 ) : index > 0 ? (
@@ -324,7 +344,7 @@ export default function LibraryScreen() {
                 <View style={styles.row}>
                   <Pressable
                     onPress={() =>
-                      google ? openGoogleBook(book) : router.push(`/ksiazka/${book.id}`)
+                      external ? openBook(book) : router.push(`/ksiazka/${book.id}`)
                     }
                     accessibilityRole="button"
                     accessibilityLabel={`${book.title}, ${book.author}`}
@@ -382,7 +402,7 @@ export default function LibraryScreen() {
                       ) : null}
                     </View>
                   </Pressable>
-                  {google ? (
+                  {external ? (
                     <Pressable
                       onPress={() => addToLibrary(book)}
                       accessibilityRole="button"
@@ -408,15 +428,15 @@ export default function LibraryScreen() {
             ))
           )}
 
-          {searchActive && googleLoading ? (
+          {searchActive && searchLoading ? (
             <View style={{ paddingVertical: 16, alignItems: 'center' }}>
               <ActivityIndicator size="small" color={c.claret} />
             </View>
           ) : null}
 
-          {searchActive && googleError ? (
+          {searchActive && searchError ? (
             <Txt variant="small" color={c.claret} style={{ marginTop: 10 }}>
-              {googleError}
+              {searchError}
             </Txt>
           ) : null}
         </ScrollView>
@@ -637,7 +657,7 @@ function makeStyles(c: ReturnType<typeof useColors>) {
     rowMain: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
     moreBtn: { padding: 6 },
     progressTrack: { height: 2, backgroundColor: c.ruleSoft, width: '100%' },
-    googleHead: {
+    searchHead: {
       flexDirection: 'row',
       alignItems: 'baseline',
       justifyContent: 'space-between',

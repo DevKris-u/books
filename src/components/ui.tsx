@@ -20,8 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Book, Source } from '@/data/types';
 import { fonts, radius, shadow, space, type, useColors } from '@/theme';
 import { tapLight } from '@/lib/haptics';
-import { googleCoverUrl } from '@/lib/covers';
-import { findOpenLibraryCover } from '@/lib/openLibrary';
+import { coverCandidates } from '@/lib/covers';
 
 /* --------------------------------- text --------------------------------- */
 
@@ -268,37 +267,12 @@ export function Cover({ book, width = 44 }: { book?: Book; width?: number }) {
   const c = useColors();
   const height = Math.round(width * 1.5);
   const [failed, setFailed] = useState<Record<string, boolean>>({});
-  const [fallback, setFallback] = useState<{ key: string; uri: string | null } | null>(null);
 
-  const title = book?.title ?? '';
-  const author = book?.author ?? '';
-  const bookKey = book ? `${book.id}|${title}|${author}` : '';
-  const primaryUri = book
-    ? book.coverUrl || (book.hasCover === false ? null : googleCoverUrl(book.id))
-    : null;
-  const fallbackUri = fallback?.key === bookKey ? fallback.uri : null;
+  // Google Books first, Open Library second — both by ISBN. If neither has
+  // artwork, the drawn cover underneath stays visible.
+  const { primary, fallback } = coverCandidates(book);
   const artworkUri =
-    primaryUri && !failed[primaryUri]
-      ? primaryUri
-      : fallbackUri && !failed[fallbackUri]
-        ? fallbackUri
-        : null;
-
-  // Google Books carries no artwork for every edition. When its cover is
-  // missing, or the image fails to load, ask Open Library before drawing one.
-  useEffect(() => {
-    if (!bookKey || !title) return;
-    if (fallback?.key === bookKey) return;
-    if (primaryUri && !failed[primaryUri]) return;
-
-    let active = true;
-    void findOpenLibraryCover({ title, author }).then((cover) => {
-      if (active) setFallback({ key: bookKey, uri: cover });
-    });
-    return () => {
-      active = false;
-    };
-  }, [bookKey, title, author, primaryUri, failed, fallback?.key]);
+    primary && !failed[primary] ? primary : fallback && !failed[fallback] ? fallback : null;
 
   if (!book) {
     return (

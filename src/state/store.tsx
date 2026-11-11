@@ -153,6 +153,7 @@ type Action =
   | { type: 'UPDATE_PROFILE'; name: string; handle?: string; joinedAt?: string }
   | { type: 'SET_THEME'; theme: Theme }
   | { type: 'ADD_BOOK'; book: Book }
+  | { type: 'UPDATE_BOOK'; bookId: string; patch: Partial<Book> }
   | { type: 'EXCLUDE_TITLE'; title: string }
   | { type: 'LOGOUT' }
   | { type: 'RESET' };
@@ -489,6 +490,14 @@ function reducer(state: State, action: Action): State {
         books: state.books.some((b) => b.id === action.book.id)
           ? state.books
           : [action.book, ...state.books],
+      };
+
+    case 'UPDATE_BOOK':
+      return {
+        ...state,
+        books: state.books.map((book) =>
+          book.id === action.bookId ? { ...book, ...action.patch } : book,
+        ),
       };
 
     case 'EXCLUDE_TITLE': {
