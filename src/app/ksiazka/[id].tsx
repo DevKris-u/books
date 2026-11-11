@@ -181,7 +181,7 @@ export default function BookScreen() {
               ? 'Wydawca zgodził się na udostępnianie krótkich fragmentów w Marginesie. Hot Peak może promować tę książkę.'
               : book.source === 'public'
                 ? 'Prawa autorskie wygasły — fragmenty możemy pokazywać bez ograniczeń.'
-                : 'Książkę dodał czytelnik. Fragmenty zobaczą się w feedzie, ale nie promujemy ich w Hot Peakach.'}
+                : 'Książkę dodał czytelnik. Jej fragmenty mogą trafić zarówno do feedu, jak i do Hot Peaka.'}
           </Txt>
         </View>
 

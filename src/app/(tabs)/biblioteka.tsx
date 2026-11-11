@@ -23,7 +23,17 @@ import {
   Stars,
   Txt,
 } from '@/components/ui';
-import { Book, GENRES, Genre, MOODS, Mood, SHELF_LABEL, Shelf } from '@/data/types';
+import {
+  Book,
+  GENRES,
+  Genre,
+  LibraryItem,
+  MOODS,
+  Mood,
+  SHELF_LABEL,
+  Shelf,
+} from '@/data/types';
+import { plural } from '@/lib/utils';
 import { useStore } from '@/state/store';
 import { colors, fonts, useColors } from '@/theme';
 
@@ -61,18 +71,28 @@ export default function LibraryScreen() {
     { want: 0, reading: 0, read: 0 },
   );
 
-  const items = all
-    .filter((entry) => entry.item.shelf === shelf)
-    .filter((entry) => {
-      const needle = query.trim().toLowerCase();
-      if (!needle) return true;
-      return (
-        entry.book.title.toLowerCase().includes(needle) ||
-        entry.book.author.toLowerCase().includes(needle)
-      );
-    })
-    .filter((entry) => (genre ? entry.book.genre === genre : true))
-    .filter((entry) => (mood ? entry.book.moods.includes(mood) : true));
+  const needle = query.trim().toLowerCase();
+  const searchActive = needle.length > 0 || !!genre || !!mood;
+
+  // Searching and filtering run over the whole catalogue, so a reader can find
+  // a book that is not on their shelves yet. Shelves only scope the plain list.
+  const items: { book: Book; item?: LibraryItem }[] = searchActive
+    ? state.books
+        .filter((book) => book.source !== 'excluded')
+        .filter((book) => {
+          if (!needle) return true;
+          return (
+            book.title.toLowerCase().includes(needle) ||
+            book.author.toLowerCase().includes(needle) ||
+            book.publisher.toLowerCase().includes(needle)
+          );
+        })
+        .filter((book) => (genre ? book.genre === genre : true))
+        .filter((book) => (mood ? book.moods.includes(mood) : true))
+        .map((book) => ({ book, item: state.library.find((i) => i.bookId === book.id) }))
+    : all
+        .filter((entry) => entry.item.shelf === shelf)
+        .map((entry) => ({ book: entry.book, item: entry.item }));
 
   const openEdit = (book: Book) => {
     const item = state.library.find((i) => i.bookId === book.id);
@@ -93,6 +113,24 @@ export default function LibraryScreen() {
           <Txt style={styles.title}>Biblioteka</Txt>
         </View>
 
+        {searchActive ? (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'baseline',
+              justifyContent: 'space-between',
+              paddingTop: 14,
+              paddingBottom: 2,
+            }}
+          >
+            <Txt variant="meta" color={c.inkSoft}>
+              w całym katalogu
+            </Txt>
+            <Txt variant="meta" color={c.inkSoft}>
+              {items.length} {plural(items.length, 'książka', 'książki', 'książek')}
+            </Txt>
+          </View>
+        ) : (
         <View style={styles.shelves}>
           {SHELVES.map((key) => {
             const active = shelf === key;
@@ -118,13 +156,14 @@ export default function LibraryScreen() {
             );
           })}
         </View>
+        )}
 
         <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', marginTop: 14 }}>
           <View style={{ flex: 1 }}>
             <Field
               value={query}
               onChangeText={setQuery}
-              placeholder="Szukaj po tytule lub autorze"
+              placeholder="Szukaj po tytule, autorze lub wydawcy"
               autoCorrect={false}
               style={{ minHeight: 44, paddingVertical: 9 }}
             />
@@ -155,7 +194,25 @@ export default function LibraryScreen() {
           contentContainerStyle={{ paddingTop: 14, paddingBottom: 24 }}
         >
           {items.length === 0 ? (
-            shelfEmpty ? (
+            searchActive ? (
+              <EmptyState
+                centered
+                icon="search"
+                title="Brak wyników"
+                body="Nie mamy w katalogu książki, która pasuje do tego szukania i filtrów."
+                action={
+                  <Btn
+                    label="Wyczyść szukanie"
+                    variant="ghost"
+                    onPress={() => {
+                      setQuery('');
+                      setGenre(null);
+                      setMood(null);
+                    }}
+                  />
+                }
+              />
+            ) : shelfEmpty ? (
               <EmptyState
                 centered
                 icon={shelf === 'read' ? 'check-circle' : shelf === 'reading' ? 'book-open' : 'bookmark'}
@@ -216,7 +273,7 @@ export default function LibraryScreen() {
                         {book.author} · {book.genre}
                       </Txt>
 
-                      {item.shelf === 'reading' ? (
+                      {item && item.shelf === 'reading' ? (
                         <View style={{ marginTop: 7 }}>
                           <View style={styles.progressTrack}>
                             <View
@@ -239,7 +296,7 @@ export default function LibraryScreen() {
                         </View>
                       ) : null}
 
-                      {item.shelf === 'read' ? (
+                      {item && item.shelf === 'read' ? (
                         <View style={{ marginTop: 6 }}>
                           <Stars value={item.rating ?? 0} size={13} />
                           {item.note ? (
@@ -256,15 +313,17 @@ export default function LibraryScreen() {
                       ) : null}
                     </View>
                   </Pressable>
-                  <Pressable
-                    onPress={() => setMenuFor(book)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Opcje książki ${book.title}`}
-                    hitSlop={8}
-                    style={styles.moreBtn}
-                  >
-                    <Feather name="more-horizontal" size={18} color={c.inkMid} />
-                  </Pressable>
+                  {item ? (
+                    <Pressable
+                      onPress={() => setMenuFor(book)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Opcje książki ${book.title}`}
+                      hitSlop={8}
+                      style={styles.moreBtn}
+                    >
+                      <Feather name="more-horizontal" size={18} color={c.inkMid} />
+                    </Pressable>
+                  ) : null}
                 </View>
               </View>
             ))

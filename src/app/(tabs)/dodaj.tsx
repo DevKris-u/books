@@ -29,6 +29,7 @@ import { recogniseFragment } from '@/lib/ocr';
 import { tapLight } from '@/lib/haptics';
 import { getDeviceKey } from '@/lib/device';
 import { searchGoogleBooks, GoogleBook } from '@/lib/googleBooks';
+
 import { publishBook, publishFragment } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { normalizeText, plural } from '@/lib/utils';
@@ -291,6 +292,10 @@ export default function AddScreen() {
     setSaving(true);
     setError(null);
     try {
+      // A fragment references its book through a foreign key, so the book has
+      // to exist in Postgres first. Books picked from Google Books only live in
+      // local state until now; publishing is idempotent for books already there.
+      await publishBook(book);
       const deviceKey = state.deviceKey ?? (await getDeviceKey());
       const fragment = await publishFragment(
         {
@@ -307,9 +312,11 @@ export default function AddScreen() {
       );
       dispatch({ type: 'ADD_POST', fragment });
       setPublished('live');
-    } catch {
+    } catch (caught) {
       setError(
-        'Nie udało się opublikować fragmentu. Sprawdź połączenie i spróbuj ponownie.',
+        caught instanceof Error && caught.message.startsWith('Nie ')
+          ? caught.message
+          : 'Nie udało się opublikować fragmentu. Sprawdź połączenie i spróbuj ponownie.',
       );
     } finally {
       setSaving(false);
@@ -743,32 +750,24 @@ export default function AddScreen() {
                       { borderColor: active ? c.ink : c.rule },
                     ]}
                   >
-                    <View style={{ width: 36, height: 52 }}>
-                      {item.imageLinks?.thumbnail ? (
-                        <Image
-                          source={{ uri: item.imageLinks.thumbnail }}
-                          style={styles.photo}
-                          resizeMode="cover"
-                        />
-                      ) : (
-                        <Cover
-                          book={{
-                            id: item.id,
-                            title: item.title,
-                            author: item.authors.join(', '),
-                            genre: 'literatura piękna',
-                            moods: [],
-                            year: new Date().getFullYear(),
-                            publisher: item.publisher || 'wydanie własne',
-                            pages: item.pageCount || 0,
-                            description: item.description || '',
-                            source: 'unverified',
-                            color: '#4A4238',
-                          }}
-                          width={36}
-                        />
-                      )}
-                    </View>
+                    <Cover
+                      book={{
+                        id: item.id,
+                        title: item.title,
+                        author: item.authors.join(', '),
+                        genre: 'literatura piękna',
+                        moods: [],
+                        year: new Date().getFullYear(),
+                        publisher: item.publisher || 'wydanie własne',
+                        pages: item.pageCount || 0,
+                        description: item.description || '',
+                        source: 'unverified',
+                        color: '#4A4238',
+                        coverUrl:
+                          item.imageLinks?.thumbnail?.replace(/^http:/, 'https:') || undefined,
+                      }}
+                      width={40}
+                    />
                     <View style={{ flex: 1 }}>
                       <Txt variant="label" numberOfLines={1} color={c.ink}>
                         {item.title}

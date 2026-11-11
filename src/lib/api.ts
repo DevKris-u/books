@@ -155,20 +155,28 @@ export async function fetchCatalog(
 
 /* --------------------------------- writes --------------------------------- */
 
+/**
+ * Writes a book to the catalogue. Idempotent: an existing id is left untouched
+ * instead of failing on the primary key, so it can be used to make sure a book
+ * is present before a fragment references it.
+ */
 export async function publishBook(book: Book): Promise<Book> {
-  const { error } = await supabase.from('books').insert({
-    id: book.id,
-    title: book.title,
-    author: book.author,
-    genre: book.genre,
-    moods: book.moods,
-    year: book.year,
-    publisher: book.publisher,
-    pages: book.pages,
-    description: book.description,
-    source: book.source,
-    color: book.color,
-  });
+  const { error } = await supabase.from('books').upsert(
+    {
+      id: book.id,
+      title: book.title,
+      author: book.author,
+      genre: book.genre,
+      moods: book.moods,
+      year: book.year,
+      publisher: book.publisher,
+      pages: book.pages,
+      description: book.description,
+      source: book.source,
+      color: book.color,
+    },
+    { onConflict: 'id', ignoreDuplicates: true },
+  );
   if (error) fail('Nie udało się dodać książki', error);
   return book;
 }
@@ -207,7 +215,17 @@ export async function publishFragment(
     .select('*')
     .single();
 
-  if (error) fail('Nie udało się opublikować fragmentu', error);
+  if (error) {
+    // 23503: fragments.book_id points at a book that is not in the catalogue.
+    if (error.code === '23503') {
+      throw new Error('Nie mamy tej książki w bazie. Dodaj ją ponownie i spróbuj jeszcze raz.');
+    }
+    // 23505: the same fragment is already stored.
+    if (error.code === '23505') {
+      throw new Error('Ten fragment już jest w bazie. Wybierz inny fragment z tej książki.');
+    }
+    fail('Nie udało się opublikować fragmentu', error);
+  }
   return toFragment(data as FragmentRow, deviceKey, userId);
 }
 

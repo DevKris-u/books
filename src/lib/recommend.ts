@@ -124,8 +124,10 @@ export function buildQueue(state: State, opts: QueueOptions = {}): Candidate[] {
 }
 
 export function pickHotPeak(state: State): Candidate | null {
+  // Every fragment is eligible: a reader-added book is as valid a recommendation
+  // as a licensed one. Books excluded at a publisher's request are already
+  // removed by `eligible`.
   const pool = eligible(state)
-    .filter((f) => f.book.source === 'licensed' || f.book.source === 'public')
     .filter((f) => !state.wantToRead.includes(f.bookId))
     .filter(
       (f) => !state.library.some((i) => i.bookId === f.bookId && i.shelf === 'read'),
@@ -135,7 +137,8 @@ export function pickHotPeak(state: State): Candidate | null {
 
   return pool
     .map((f) => {
-      const sourceBonus = f.book.source === 'licensed' ? 1.5 : 0.6;
+      const sourceBonus =
+        f.book.source === 'licensed' ? 1.5 : f.book.source === 'public' ? 0.6 : 0;
       return { f, score: scoreFragment(state, f) + sourceBonus };
     })
     .sort((a, b) => b.score - a.score)[0].f;
@@ -170,7 +173,9 @@ export function hotPeakReasons(state: State, candidate: Candidate): string[] {
   if (tag) reasons.push(`tag „${tag}” czyta się u Ciebie najlepiej`);
 
   if (candidate.book.source === 'public') reasons.push('klasyka w domenie publicznej');
-  else reasons.push('źródło licencjonowane przez wydawcę');
+  else if (candidate.book.source === 'licensed')
+    reasons.push('źródło licencjonowane przez wydawcę');
+  else reasons.push('książka dodana przez czytelnika');
 
   return reasons.slice(0, 3);
 }

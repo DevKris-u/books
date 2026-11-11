@@ -44,7 +44,8 @@ export default function HotPeakScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <View style={[styles.header, { paddingHorizontal: 22 }]}>        <IconBtn name="x" label="Zamknij Hot Peak" size={38} onPress={() => router.back()} />
+      <View style={[styles.header, { paddingHorizontal: 22 }]}>
+        <IconBtn name="x" label="Zamknij Hot Peak" size={38} onPress={() => router.back()} />
         <View style={styles.titleWrap}>
           <Feather name="zap" size={12} color={c.brass} />
           <Txt style={styles.title}>Hot Peak</Txt>
@@ -105,7 +106,7 @@ export default function HotPeakScreen() {
         <View style={{ paddingHorizontal: 22, paddingTop: 30 }}>
           <Txt style={styles.headline}>Nie mamy teraz nic pewnego.</Txt>
           <Txt variant="body" color={c.inkMid} style={{ marginTop: 10 }}>
-            Hot Peak wybieramy tylko ze źródeł licencjonowanych i domeny publicznej. Przesuń kilka
+            Hot Peak wybieramy spośród wszystkich fragmentów w Marginesie. Przesuń kilka
             fragmentów albo dodaj książki do listy — wrócimy z lepszą propozycją.
           </Txt>
           <View style={{ height: 20 }} />
@@ -141,7 +142,8 @@ export default function HotPeakScreen() {
             </View>
           </View>
 
-          <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom, 14) }]}>            <Btn
+          <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom, 14) }]}>
+            <Btn
               label="Nie teraz"
               variant="ghost"
               onPress={() => router.back()}

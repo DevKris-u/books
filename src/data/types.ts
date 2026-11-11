@@ -50,6 +50,7 @@ export type Book = {
   description: string;
   source: Source;
   color: string;
+  coverUrl?: string;
 };
 
 export type Fragment = {

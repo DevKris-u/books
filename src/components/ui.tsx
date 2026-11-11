@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
+  Image,
   Pressable,
   ScrollView,
   StyleProp,
@@ -19,6 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Book, Source } from '@/data/types';
 import { fonts, radius, shadow, space, type, useColors } from '@/theme';
 import { tapLight } from '@/lib/haptics';
+import { googleCoverUrl } from '@/lib/covers';
 
 /* --------------------------------- text --------------------------------- */
 
@@ -211,9 +213,62 @@ export function SourceMark({ source, showLabel = false }: { source: Source; show
   );
 }
 
+/** Drawn cover used while the real artwork loads, and for books without one. */
+function DrawnCover({ book, width }: { book: Book; width: number }) {
+  const c = useColors();
+  const compact = width < 40;
+  return (
+    <View
+      style={{
+        flex: 1,
+        margin: Math.max(2, width * 0.08),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(242,233,218,0.32)',
+        padding: compact ? 2 : width * 0.09,
+      }}
+    >
+      {compact ? null : (
+        <>
+          <Txt
+            variant="meta"
+            color={c.onDark}
+            numberOfLines={3}
+            style={{
+              fontSize: Math.max(7, width * 0.155),
+              lineHeight: Math.max(9, width * 0.2),
+              letterSpacing: 0,
+            }}
+          >
+            {book.title}
+          </Txt>
+          <View style={{ flex: 1 }} />
+          {width >= 64 ? (
+            <Txt
+              variant="micro"
+              color="rgba(242,233,218,0.7)"
+              numberOfLines={1}
+              style={{ fontSize: Math.max(5.5, width * 0.105) }}
+            >
+              {book.author}
+            </Txt>
+          ) : null}
+        </>
+      )}
+    </View>
+  );
+}
+
+/**
+ * Book cover at a fixed width with the standard 2:3 book proportion, so every
+ * list, card and sheet shows the same shape. Real artwork is used when it can
+ * be resolved; the drawn cover sits behind it as a loading placeholder.
+ */
 export function Cover({ book, width = 44 }: { book?: Book; width?: number }) {
   const c = useColors();
-  const height = Math.round(width * 1.46);
+  const height = Math.round(width * 1.5);
+  const uri = book ? book.coverUrl || googleCoverUrl(book.id) : null;
+  const [failedUri, setFailedUri] = useState<string | null>(null);
+
   if (!book) {
     return (
       <View
@@ -232,9 +287,12 @@ export function Cover({ book, width = 44 }: { book?: Book; width?: number }) {
       </View>
     );
   }
-  const compact = width < 40;
+
+  const showArtwork = !!uri && failedUri !== uri;
+
   return (
     <View
+      accessibilityLabel={`Okładka książki ${book.title}`}
       style={{
         width,
         height,
@@ -245,43 +303,16 @@ export function Cover({ book, width = 44 }: { book?: Book; width?: number }) {
         borderColor: 'rgba(27,22,17,0.25)',
       }}
     >
-      <View
-        style={{
-          flex: 1,
-          margin: Math.max(2, width * 0.08),
-          borderWidth: StyleSheet.hairlineWidth,
-          borderColor: 'rgba(242,233,218,0.32)',
-          padding: compact ? 2 : width * 0.09,
-        }}
-      >
-        {compact ? null : (
-          <>
-            <Txt
-              variant="meta"
-              color={c.onDark}
-              numberOfLines={3}
-              style={{
-                fontSize: Math.max(7, width * 0.155),
-                lineHeight: Math.max(9, width * 0.2),
-                letterSpacing: 0,
-              }}
-            >
-              {book.title}
-            </Txt>
-            <View style={{ flex: 1 }} />
-            {width >= 64 ? (
-              <Txt
-                variant="micro"
-                color="rgba(242,233,218,0.7)"
-                numberOfLines={1}
-                style={{ fontSize: Math.max(5.5, width * 0.105) }}
-              >
-                {book.author}
-              </Txt>
-            ) : null}
-          </>
-        )}
-      </View>
+      <DrawnCover book={book} width={width} />
+      {showArtwork ? (
+        <Image
+          source={{ uri: uri! }}
+          style={{ position: 'absolute', top: 0, left: 0, width, height }}
+          resizeMode="cover"
+          onError={() => setFailedUri(uri)}
+          accessibilityIgnoresInvertColors
+        />
+      ) : null}
     </View>
   );
 }
