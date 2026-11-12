@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm run export",
+  "buildCommand": "CI=true npm run export",
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "devCommand": "npx expo start --web",
