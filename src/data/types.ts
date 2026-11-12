@@ -50,9 +50,8 @@ export type Book = {
   description: string;
   source: Source;
   color: string;
+  /** Artwork stored in our catalogue (`books.cover_link`). */
   coverUrl?: string;
-  /** False when the source API explicitly reported no cover artwork. */
-  hasCover?: boolean;
 };
 
 export type Fragment = {

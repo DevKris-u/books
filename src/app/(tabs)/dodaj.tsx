@@ -28,13 +28,8 @@ import {
 import { recogniseFragment } from '@/lib/ocr';
 import { tapLight } from '@/lib/haptics';
 import { getDeviceKey } from '@/lib/device';
-import {
-  COVER_COLORS,
-  GoogleBook,
-  googleBookToBook,
-  searchGoogleBooks,
-} from '@/lib/googleBooks';
-import { publishBook, publishFragment } from '@/lib/api';
+import { COVER_COLORS } from '@/lib/covers';
+import { publishBook, publishFragment, searchBooks } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { normalizeText, plural } from '@/lib/utils';
 import { Candidate } from '@/lib/recommend';
@@ -68,10 +63,11 @@ export default function AddScreen() {
   const [pickerNote, setPickerNote] = useState<string | null>(null);
   const [bookId, setBookId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
-  const [googleBooks, setGoogleBooks] = useState<GoogleBook[]>([]);
-  const [googleSearchLoading, setGoogleSearchLoading] = useState(false);
-  const [googleSearchError, setGoogleSearchError] = useState<string | null>(null);
+  const [searchResults, setSearchResults] = useState<Book[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchRequestRef = useRef(0);
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newAuthor, setNewAuthor] = useState('');
@@ -94,6 +90,37 @@ export default function AddScreen() {
   const todayCount = postsToday(state);
   const limitReached = todayCount >= DAILY_POST_LIMIT;
   const book = bookId ? bookById(bookId) : undefined;
+  // Titles a publisher took down stay hidden, even if Postgres still returns them.
+  const visibleResults = searchResults.filter((item) => bookById(item.id)?.source !== 'excluded');
+
+  // Search runs in Postgres, so the whole catalogue is reachable without
+  // downloading thousands of books. An empty query shows a few recent titles.
+  useEffect(() => {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    const requestId = ++searchRequestRef.current;
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      setSearchLoading(true);
+      setSearchError(null);
+      try {
+        const results = await searchBooks(query, { limit: query.trim() ? 20 : 6 });
+        if (requestId === searchRequestRef.current) setSearchResults(results);
+      } catch (caught) {
+        if (requestId === searchRequestRef.current) {
+          setSearchError(
+            caught instanceof Error ? caught.message : 'Nie udało się wyszukać książek.',
+          );
+          setSearchResults([]);
+        }
+      } finally {
+        if (requestId === searchRequestRef.current) setSearchLoading(false);
+      }
+    }, 300);
+
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, [query]);
 
   const toggleTag = (tag: EmotionTag) => {
     setTags((current) =>
@@ -133,38 +160,6 @@ export default function AddScreen() {
     }
   };
 
-  useEffect(() => {
-    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-
-    const needle = query.trim();
-    searchTimeoutRef.current = setTimeout(async () => {
-      if (!needle) {
-        setGoogleBooks([]);
-        setGoogleSearchError(null);
-        setGoogleSearchLoading(false);
-        return;
-      }
-
-      setGoogleSearchLoading(true);
-      setGoogleSearchError(null);
-      try {
-        const results = await searchGoogleBooks(needle, 20);
-        setGoogleBooks(results);
-      } catch (caught) {
-        setGoogleSearchError(
-          caught instanceof Error ? caught.message : 'Nie udało się wyszukać książek.',
-        );
-        setGoogleBooks([]);
-      } finally {
-        setGoogleSearchLoading(false);
-      }
-    }, 400);
-
-    return () => {
-      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    };
-  }, [query]);
-
   const createBook = async () => {
     if (saving) return;
     if (!newTitle.trim() || !newAuthor.trim()) {
@@ -202,16 +197,6 @@ export default function AddScreen() {
     }
   };
 
-  const selectGoogleBook = (gb: GoogleBook) => {
-    const existing = state.books.find((b) => b.id === gb.id);
-    if (!existing) {
-      dispatch({ type: 'ADD_BOOK', book: googleBookToBook(gb) });
-    }
-    setBookId(gb.id);
-    setQuery('');
-    setGoogleBooks([]);
-  };
-
   const publish = async () => {
     if (!book || !purpose || saving) return;
     const cleanText = text.trim();
@@ -234,8 +219,8 @@ export default function AddScreen() {
     setError(null);
     try {
       // A fragment references its book through a foreign key, so the book has
-      // to exist in Postgres first. Books picked from Google Books only live in
-      // local state until now; publishing is idempotent for books already there.
+      // to exist in Postgres first. Books added by readers only live in local
+      // state until now; publishing is idempotent for books already there.
       await publishBook(book);
       const deviceKey = state.deviceKey ?? (await getDeviceKey());
       const fragment = await publishFragment(
@@ -669,35 +654,38 @@ export default function AddScreen() {
               autoCorrect={false}
             />
 
-            {googleSearchLoading ? (
+            {searchLoading ? (
               <View style={{ paddingVertical: 10, alignItems: 'center' }}>
                 <ActivityIndicator size="small" color={c.claret} />
               </View>
-            ) : googleSearchError ? (
+            ) : searchError ? (
               <Txt variant="small" color={c.claret} style={{ marginTop: 6 }}>
-                {googleSearchError}
+                {searchError}
               </Txt>
             ) : (
-              googleBooks.map((item) => {
+              visibleResults.map((item) => {
                 const active = bookId === item.id;
                 return (
                   <Pressable
                     key={item.id}
-                    onPress={() => selectGoogleBook(item)}
+                    onPress={() => {
+                      if (bookById(item.id) == null) {
+                        dispatch({ type: 'ADD_BOOK', book: item });
+                      }
+                      setBookId(item.id);
+                      setQuery('');
+                    }}
                     accessibilityRole="radio"
                     accessibilityState={{ selected: active }}
-                    style={[
-                      styles.bookRow,
-                      { borderColor: active ? c.ink : c.rule },
-                    ]}
+                    style={[styles.bookRow, { borderColor: active ? c.ink : c.rule }]}
                   >
-                    <Cover book={googleBookToBook(item)} width={40} />
+                    <Cover book={item} width={40} />
                     <View style={{ flex: 1 }}>
                       <Txt variant="label" numberOfLines={1} color={c.ink}>
                         {item.title}
                       </Txt>
                       <Txt variant="small" color={c.inkSoft} numberOfLines={1}>
-                        {item.authors.join(', ') || 'autor nieznany'}
+                        {item.author || 'autor nieznany'}
                       </Txt>
                     </View>
                     {active ? (
@@ -717,7 +705,7 @@ export default function AddScreen() {
               })
             )}
 
-            {!googleBooks.length && query.trim() ? (
+            {!searchLoading && !searchError && query.trim() && !visibleResults.length ? (
               <Txt variant="small" color={c.inkSoft} style={{ marginTop: 6 }}>
                 Nie znaleziono książek. Spróbuj innej frazy albo dodaj własną.
               </Txt>
