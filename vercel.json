@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "buildCommand": "CI=true npm run export",
   "outputDirectory": "dist",
   "installCommand": "npm install",
+  "buildCommand": "CI=true npx expo export --platform web && node scripts/pwa-postexport.js",
   "devCommand": "npx expo start --web",
   "cleanUrls": true,
   "trailingSlash": false,
