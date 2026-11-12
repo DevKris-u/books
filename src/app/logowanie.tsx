@@ -1,16 +1,17 @@
 import { Feather } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Txt } from '@/components/ui';
+import { Field, Txt } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { useStore } from '@/state/store';
 import { fonts, useColors } from '@/theme';
@@ -32,35 +33,23 @@ const BENEFITS = [
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
-  const params = useLocalSearchParams<{ next?: string }>();
   const { state } = useStore();
-  const { user, signInWithGoogle } = useAuth();
+  const { signInWithEmail } = useAuth();
   const c = useColors();
   const styles = makeStyles(c, state.theme === 'dark');
 
-  const next =
-    typeof params.next === 'string' && params.next.startsWith('/') ? params.next : '/';
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!user || busy) return;
-    router.replace(next);
-  }, [user, busy, next, router]);
-
-  const leave = () => {
-    if (router.canGoBack()) router.back();
-    else router.replace('/');
-  };
 
   const start = async () => {
     if (busy) return;
     setBusy(true);
     setError(null);
     try {
-      const done = await signInWithGoogle(next);
-      if (!done) setBusy(false);
+      await signInWithEmail(email, password);
+      // The root stack swaps this screen for the app as soon as the session lands.
     } catch (caught) {
       setError(
         caught instanceof Error
@@ -72,22 +61,16 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    <KeyboardAvoidingView
+      style={[styles.root, { paddingTop: insets.top }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       <StatusBar style={state.theme === 'dark' ? 'dark' : 'light'} />
 
       <View style={styles.topBar}>
-        <Pressable
-          onPress={leave}
-          accessibilityRole="button"
-          accessibilityLabel="Wróć"
-          hitSlop={10}
-          style={styles.back}
-        >
-          <Feather name="chevron-left" size={20} color={c.onDark} />
-        </Pressable>
         <Txt style={styles.wordmark}>margines</Txt>
         <Txt variant="meta" color={c.onDarkSoft}>
-          konto
+          beta
         </Txt>
       </View>
 
@@ -98,7 +81,7 @@ export default function LoginScreen() {
         <View style={styles.eyebrow}>
           <View style={styles.dot} />
           <Txt variant="meta" color={c.brass}>
-            publikowanie
+            konto
           </Txt>
         </View>
 
@@ -107,8 +90,8 @@ export default function LoginScreen() {
         <View style={styles.leadRow}>
           <View style={styles.leadRule} />
           <Txt variant="body" color={c.onDarkSoft} style={styles.lead}>
-            Konto potrzebne jest tylko wtedy, gdy chcesz opublikować fragment. Czytanie
-            i przeglądanie zostaje bez logowania.
+            Beta Marginesu jest na zaproszenie. Zaloguj się kontem od redakcji, żeby wejść
+            do środka — Twoja biblioteka i fragmenty będą czekać na każdym urządzeniu.
           </Txt>
         </View>
 
@@ -144,13 +127,51 @@ export default function LoginScreen() {
           </View>
         ) : null}
 
+        <View style={{ gap: 10 }}>
+          <View>
+            <Txt variant="meta" color={c.onDarkSoft} style={styles.fieldLabel}>
+              e-mail
+            </Txt>
+            <Field
+              value={email}
+              onChangeText={setEmail}
+              placeholder="twoj@email.pl"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="email"
+              textContentType="emailAddress"
+              returnKeyType="next"
+              editable={!busy}
+            />
+          </View>
+          <View>
+            <Txt variant="meta" color={c.onDarkSoft} style={styles.fieldLabel}>
+              hasło
+            </Txt>
+            <Field
+              value={password}
+              onChangeText={setPassword}
+              placeholder="••••••••"
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="current-password"
+              textContentType="password"
+              returnKeyType="go"
+              onSubmitEditing={() => void start()}
+              editable={!busy}
+            />
+          </View>
+        </View>
+
         <Pressable
           onPress={() => void start()}
           disabled={busy}
           accessibilityRole="button"
-          accessibilityLabel="Kontynuuj z Google"
+          accessibilityLabel="Zaloguj się"
           style={({ pressed }) => [
-            styles.googleBtn,
+            styles.submitBtn,
             { opacity: busy ? 0.7 : pressed ? 0.9 : 1 },
           ]}
         >
@@ -158,15 +179,10 @@ export default function LoginScreen() {
             <ActivityIndicator size="small" color={c.ink} />
           ) : (
             <>
-              <View style={styles.googleMark}>
-                <Txt style={styles.googleLetter} color={c.onDark}>
-                  G
-                </Txt>
-              </View>
               <Txt variant="label" color={c.ink} style={{ fontSize: 15 }}>
-                Kontynuuj z Google
+                Zaloguj się
               </Txt>
-              <Feather name="arrow-up-right" size={16} color={c.inkSoft} />
+              <Feather name="arrow-right" size={16} color={c.inkSoft} />
             </>
           )}
         </Pressable>
@@ -177,20 +193,11 @@ export default function LoginScreen() {
           align="center"
           style={{ marginTop: 12, lineHeight: 16 }}
         >
-          Bez haseł i newslettera. Konto możesz usunąć razem z wpisami.
+          Konta dla betatesterów zakłada redakcja. Nie wysyłamy newslettera, a konto możesz
+          usunąć razem z wpisami.
         </Txt>
-
-        <Pressable
-          onPress={() => router.replace('/')}
-          accessibilityRole="button"
-          style={{ paddingVertical: 12, marginTop: 4 }}
-        >
-          <Txt variant="label" color={c.onDarkSoft} align="center">
-            Czytaj bez konta
-          </Txt>
-        </Pressable>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -205,13 +212,6 @@ function makeStyles(c: ReturnType<typeof useColors>, dark: boolean) {
       paddingHorizontal: 20,
       paddingTop: 8,
       paddingBottom: 8,
-    },
-    back: {
-      width: 30,
-      height: 30,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginLeft: -6,
     },
     wordmark: {
       flex: 1,
@@ -266,7 +266,8 @@ function makeStyles(c: ReturnType<typeof useColors>, dark: boolean) {
       gap: 8,
       marginBottom: 12,
     },
-    googleBtn: {
+    fieldLabel: { marginBottom: 6 },
+    submitBtn: {
       height: 56,
       borderRadius: 12,
       backgroundColor: c.paper,
@@ -275,20 +276,7 @@ function makeStyles(c: ReturnType<typeof useColors>, dark: boolean) {
       justifyContent: 'center',
       gap: 10,
       paddingHorizontal: 16,
-    },
-    googleMark: {
-      width: 22,
-      height: 22,
-      borderRadius: 11,
-      backgroundColor: c.forest,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    googleLetter: {
-      fontFamily: fonts.uiBold,
-      fontSize: 11,
-      lineHeight: 13,
-      letterSpacing: 0,
+      marginTop: 14,
     },
   });
 }

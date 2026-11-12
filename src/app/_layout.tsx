@@ -18,7 +18,7 @@ import {
   Literata_700Bold,
 } from '@expo-google-fonts/literata';
 import { StoreProvider, useStore } from '@/state/store';
-import { AuthProvider } from '@/lib/auth';
+import { AuthProvider, useAuth } from '@/lib/auth';
 import { ThemeProvider, useColors, fonts, lightColors, darkColors } from '@/theme';
 import { Txt } from '@/components/ui';
 
@@ -65,8 +65,9 @@ function AppBody() {
 
 function RootStack({ theme }: { theme: 'light' | 'dark' }) {
   const { state } = useStore();
+  const { user, loading } = useAuth();
   const colors = theme === 'dark' ? darkColors : lightColors;
-  if (!state.hydrated) return <BootSplash colors={colors} />;
+  if (!state.hydrated || loading) return <BootSplash colors={colors} />;
 
   return (
     <Stack
@@ -76,15 +77,21 @@ function RootStack({ theme }: { theme: 'light' | 'dark' }) {
         animation: 'slide_from_right',
       }}
     >
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="onboarding" options={{ animation: 'fade', gestureEnabled: false }} />
-      <Stack.Screen name="hot-peak" options={{ animation: 'fade_from_bottom' }} />
-      <Stack.Screen name="pro" options={{ animation: 'slide_from_bottom' }} />
-      <Stack.Screen name="zglos" />
-      <Stack.Screen name="ksiazka/[id]" />
-      <Stack.Screen name="ustawienia" />
-      <Stack.Screen name="panel-wydawcy" />
-      <Stack.Screen name="logowanie" options={{ animation: 'slide_from_bottom' }} />
+      <Stack.Protected guard={!!user} redirectTo="/logowanie">
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="onboarding" options={{ animation: 'fade', gestureEnabled: false }} />
+        <Stack.Screen name="hot-peak" options={{ animation: 'fade_from_bottom' }} />
+        <Stack.Screen name="pro" options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="zglos" />
+        <Stack.Screen name="ksiazka/[id]" />
+        <Stack.Screen name="ustawienia" />
+        <Stack.Screen name="panel-wydawcy" />
+      </Stack.Protected>
+
+      <Stack.Protected guard={!user}>
+        <Stack.Screen name="logowanie" options={{ animation: 'fade', gestureEnabled: false }} />
+      </Stack.Protected>
+
       <Stack.Screen
         name="auth-callback"
         options={{ animation: 'fade', gestureEnabled: false }}

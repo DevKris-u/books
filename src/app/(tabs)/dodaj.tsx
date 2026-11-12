@@ -47,7 +47,7 @@ export default function AddScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { state, dispatch, bookById } = useStore();
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const c = useColors();
   const styles = makeStyles(c);
 
@@ -290,56 +290,6 @@ export default function AddScreen() {
           book,
         }
       : null;
-
-  if (authLoading) {
-    return (
-      <View style={[styles.root, { paddingTop: insets.top + 20, paddingHorizontal: 22 }]}>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-          <ActivityIndicator size="small" color={c.claret} />
-          <Txt variant="small" color={c.inkSoft}>
-            Sprawdzamy konto…
-          </Txt>
-        </View>
-      </View>
-    );
-  }
-
-  if (!user) {
-    return (
-      <View style={[styles.root, { paddingTop: insets.top + 20, paddingHorizontal: 22 }]}>
-        <View style={{ flex: 1, justifyContent: 'center' }}>
-          <Txt variant="meta" color={c.inkSoft}>
-            publikowanie
-          </Txt>
-          <Txt style={[styles.doneTitle, { marginTop: 8 }]}>Najpierw konto.</Txt>
-          <Txt variant="body" color={c.inkMid} style={{ marginTop: 10, maxWidth: 340 }}>
-            Czytanie i przeglądanie nie wymagają logowania. Konto potrzebne jest tylko
-            wtedy, gdy chcesz zostawić swój fragment — żeby był podpisany Twoim imieniem,
-            nie numerem urządzenia.
-          </Txt>
-
-          <View style={styles.gateNote}>
-            <View style={{ width: 2, backgroundColor: c.brass, alignSelf: 'stretch' }} />
-            <Txt variant="small" color={c.inkSoft} style={{ flex: 1 }}>
-              Logujesz się przez Google. Nie dostajemy hasła, nie wysyłamy newslettera.
-            </Txt>
-          </View>
-
-          <View style={{ marginTop: 24, gap: 10 }}>
-            <Btn
-              label="Zaloguj się przez Google"
-              onPress={() => router.push('/logowanie?next=/dodaj')}
-            />
-            <Btn label="Wróć do czytania" variant="ghost" onPress={() => router.navigate('/')} />
-          </View>
-
-          <Txt variant="micro" color={c.inkSoft} style={{ marginTop: 18, lineHeight: 16 }}>
-            Konto możesz usunąć razem z wpisami w każdej chwili, z poziomu ustawień.
-          </Txt>
-        </View>
-      </View>
-    );
-  }
 
   if (published) {
     return (
@@ -983,12 +933,6 @@ function makeStyles(c: ReturnType<typeof useColors>) {
       borderTopColor: c.rule,
       paddingTop: 10,
       gap: 8,
-    },
-    gateNote: {
-      flexDirection: 'row',
-      gap: 10,
-      marginTop: 20,
-      paddingVertical: 2,
     },
     metaRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
     footer: {

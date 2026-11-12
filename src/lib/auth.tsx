@@ -115,11 +115,34 @@ type AuthValue = {
   user: User | null;
   profile: AuthProfile | null;
   loading: boolean;
+  /** Temporarily hidden in the UI while the beta runs on in-house accounts. */
   signInWithGoogle: (nextPath?: string) => Promise<boolean>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (input: { name: string; handle: string }) => Promise<void>;
   deleteAccount: () => Promise<void>;
 };
+
+/** Turns Supabase auth errors into copy a reader can act on. */
+function authError(error: { message?: string; code?: string; status?: number }): Error {
+  const code = error.code ?? '';
+  const message = (error.message ?? '').toLowerCase();
+
+  if (code === 'invalid_credentials' || message.includes('invalid login credentials')) {
+    return new Error('E-mail lub hasło są nieprawidłowe.');
+  }
+  if (code === 'email_not_confirmed' || message.includes('email not confirmed')) {
+    return new Error('Potwierdź adres e-mail, zanim się zalogujesz.');
+  }
+  if (
+    code === 'over_request_rate_limit' ||
+    error.status === 429 ||
+    message.includes('rate limit')
+  ) {
+    return new Error('Za dużo prób logowania. Odczekaj chwilę i spróbuj ponownie.');
+  }
+  return new Error('Nie udało się zalogować. Spróbuj ponownie.');
+}
 
 const AuthContext = createContext<AuthValue | null>(null);
 
@@ -234,6 +257,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return true;
   }, []);
 
+  const signInWithEmail = useCallback(async (email: string, password: string) => {
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !password) {
+      throw new Error('Podaj e-mail i hasło.');
+    }
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: cleanEmail,
+      password,
+    });
+    if (error) throw authError(error);
+  }, []);
+
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw new Error('Nie udało się wylogować. Spróbuj ponownie.');
@@ -278,6 +314,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       profile: effectiveProfile,
       loading: sessionLoading || (!!session && profileLoading),
       signInWithGoogle,
+      signInWithEmail,
       signOut,
       updateProfile,
       deleteAccount,
@@ -288,6 +325,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       sessionLoading,
       profileLoading,
       signInWithGoogle,
+      signInWithEmail,
       signOut,
       updateProfile,
       deleteAccount,
