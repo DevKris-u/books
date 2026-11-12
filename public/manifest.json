@@ -1,0 +1,40 @@
+{
+  "name": "Margines",
+  "short_name": "Margines",
+  "description": "Fragmenty, które zostają w głowie — czytaj, zapisuj i publikuj swoje ulubione cytaty z książek.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#12332B",
+  "theme_color": "#12332B",
+  "scope": "/",
+  "lang": "pl",
+  "icons": [
+    {
+      "src": "/assets/icon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["books", "reading", "lifestyle"],
+  "screenshots": []
+}
