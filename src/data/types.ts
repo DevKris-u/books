@@ -50,8 +50,8 @@ export type Book = {
   description: string;
   source: Source;
   color: string;
+  /** Artwork stored in our catalogue (`books.cover_link`). */
   coverUrl?: string;
-  isbn?: string;
 };
 
 export type Fragment = {

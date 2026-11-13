@@ -17,7 +17,7 @@ import {
   Mood,
   Shelf,
 } from '@/data/types';
-import { fetchCatalog } from '@/lib/api';
+import { fetchBooksByIds, fetchCatalog } from '@/lib/api';
 import { getDeviceKey } from '@/lib/device';
 import { supabase } from '@/lib/supabase';
 
@@ -153,7 +153,7 @@ type Action =
   | { type: 'UPDATE_PROFILE'; name: string; handle?: string; joinedAt?: string }
   | { type: 'SET_THEME'; theme: Theme }
   | { type: 'ADD_BOOK'; book: Book }
-  | { type: 'UPDATE_BOOK'; bookId: string; patch: Partial<Book> }
+  | { type: 'ADD_BOOKS'; books: Book[] }
   | { type: 'EXCLUDE_TITLE'; title: string }
   | { type: 'LOGOUT' }
   | { type: 'RESET' };
@@ -199,6 +199,15 @@ function markActivity(state: State): Pick<State, 'activityDays'> {
 }
 
 /**
+ * Books the device owns: imports from a reading list and titles a reader
+ * typed in by hand. They have no row in Postgres, so they have to survive on
+ * disk. Catalogue books are re-fetched on every launch instead.
+ */
+function isLocalBook(book: Book): boolean {
+  return book.id.startsWith('import:') || book.id.startsWith('user-');
+}
+
+/**
  * The catalogue lives in Postgres; the device only keeps books it created
  * locally (imports) and any title hidden on this device. Everything else is
  * replaced by the server copy so two devices always see the same feed.
@@ -222,10 +231,15 @@ function reducer(state: State, action: Action): State {
   switch (action.type) {
     case 'HYDRATE': {
       const persisted = action.state;
+      // Only device-owned books and hidden titles are stored; the rest of the
+      // catalogue is fetched fresh from Postgres.
+      const persistedBooks = persisted.books?.filter(
+        (book) => isLocalBook(book) || book.source === 'excluded',
+      );
       return {
         ...state,
         ...persisted,
-        books: persisted.books?.length ? mergeBooks(persisted.books, state.books) : state.books,
+        books: persistedBooks?.length ? mergeBooks(persistedBooks, state.books) : state.books,
         hydrated: true,
       };
     }
@@ -492,13 +506,12 @@ function reducer(state: State, action: Action): State {
           : [action.book, ...state.books],
       };
 
-    case 'UPDATE_BOOK':
-      return {
-        ...state,
-        books: state.books.map((book) =>
-          book.id === action.bookId ? { ...book, ...action.patch } : book,
-        ),
-      };
+    case 'ADD_BOOKS': {
+      const known = new Set(state.books.map((b) => b.id));
+      const additions = action.books.filter((b) => !known.has(b.id));
+      if (!additions.length) return state;
+      return { ...state, books: [...additions, ...state.books] };
+    }
 
     case 'EXCLUDE_TITLE': {
       const needle = action.title.trim().toLowerCase();
@@ -551,6 +564,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const userIdRef = useRef<string | null>(null);
   const authLoadedRef = useRef(false);
+  const libraryIdsRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    libraryIdsRef.current = state.library.map((item) => item.bookId);
+  }, [state.library]);
 
   useEffect(() => {
     let cancelled = false;
@@ -588,7 +606,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     try {
       const deviceKey = await getDeviceKey();
       dispatch({ type: 'SET_DEVICE_KEY', deviceKey });
-      const catalog = await fetchCatalog(deviceKey, userIdRef.current);
+      const catalog = await fetchCatalog(deviceKey, userIdRef.current, libraryIdsRef.current);
       dispatch({ type: 'SET_CATALOG', books: catalog.books, fragments: catalog.fragments });
     } catch (error) {
       dispatch({
@@ -642,10 +660,34 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         deviceKey: _deviceKey,
         ...persisted
       } = state;
-      AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(persisted)).catch(() => {});
+      // The catalogue is not stored: only device-owned books and the titles
+      // this device hid are worth keeping between launches.
+      const books = state.books.filter((book) => isLocalBook(book) || book.source === 'excluded');
+      AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ ...persisted, books })).catch(() => {});
     }, 250);
     return () => clearTimeout(timer);
   }, [state]);
+
+  // The library survives on disk while its books do not, so anything still
+  // missing after the catalogue load is fetched by id.
+  useEffect(() => {
+    if (!state.hydrated) return;
+    const known = new Set(state.books.map((book) => book.id));
+    const missing = [...new Set(state.library.map((item) => item.bookId))].filter(
+      (id) => !known.has(id),
+    );
+    if (!missing.length) return;
+
+    let active = true;
+    fetchBooksByIds(missing)
+      .then((books) => {
+        if (active && books.length) dispatch({ type: 'ADD_BOOKS', books });
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [state.hydrated, state.library, state.books]);
 
   const bookById = useCallback(
     (id: string) => state.books.find((b) => b.id === id),

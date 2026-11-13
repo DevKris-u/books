@@ -107,34 +107,12 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
-        {user ? (
-          <View style={styles.accountLine}>
-            <Feather name="check-circle" size={13} color={c.verified} />
-            <Txt variant="micro" color={c.inkSoft} numberOfLines={1} style={{ flex: 1 }}>
-              {user.email ?? 'konto Google'}
-            </Txt>
-          </View>
-        ) : (
-          <Pressable
-            onPress={() => router.push('/logowanie?next=/profil')}
-            accessibilityRole="button"
-            style={styles.signInCard}
-          >
-            <View style={{ flex: 1 }}>
-              <Txt variant="meta" color={c.brass}>
-                konto
-              </Txt>
-              <Txt variant="label" style={{ marginTop: 4 }}>
-                Podpisz swoje fragmenty
-              </Txt>
-              <Txt variant="small" color={c.inkMid} style={{ marginTop: 2 }}>
-                Zaloguj się przez Google, żeby wpisy były przypisane do Ciebie, nie do
-                urządzenia.
-              </Txt>
-            </View>
-            <Feather name="arrow-up-right" size={16} color={c.inkSoft} />
-          </Pressable>
-        )}
+        <View style={styles.accountLine}>
+          <Feather name="check-circle" size={13} color={c.verified} />
+          <Txt variant="micro" color={c.inkSoft} numberOfLines={1} style={{ flex: 1 }}>
+            {user?.email ?? 'konto Marginesu'}
+          </Txt>
+        </View>
 
         <View style={styles.stats}>
           {stats.map((stat, index) => (
@@ -400,17 +378,6 @@ function makeStyles(c: ReturnType<typeof useColors>) {
       alignItems: 'center',
       gap: 6,
       marginTop: 12,
-    },
-    signInCard: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      marginTop: 18,
-      borderWidth: 1,
-      borderColor: 'rgba(168,127,63,0.4)',
-      backgroundColor: c.brassTint,
-      borderRadius: 12,
-      padding: 14,
     },
     stats: {
       flexDirection: 'row',

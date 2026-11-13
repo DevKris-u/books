@@ -21,12 +21,13 @@ type BookRow = {
   author: string;
   genre: string;
   moods: string[];
-  year: number;
+  year: string | number | null;
   publisher: string;
-  pages: number;
+  pages: string | number | null;
   description: string;
   source: string;
   color: string;
+  cover_link: string | null;
 };
 
 type FragmentRow = {
@@ -69,12 +70,38 @@ const TAG_SET = new Set<string>(EMOTION_TAGS);
 const PURPOSE_SET = new Set<string>(PURPOSES.map((p) => p.value));
 const SOURCE_SET = new Set<string>(['licensed', 'public', 'unverified', 'excluded']);
 
+/**
+ * The catalogue stores two genres as slugs (`reportaz`, `literatura_piekna`),
+ * so they need mapping in both directions.
+ */
+const GENRE_FROM_SLUG: Record<string, Genre> = {
+  reportaz: 'reportaż',
+  literatura_piekna: 'literatura piękna',
+};
+
+const GENRE_TO_SLUG: Partial<Record<Genre, string>> = {
+  reportaż: 'reportaz',
+  'literatura piękna': 'literatura_piekna',
+};
+
 function toGenre(value: string): Genre {
-  return GENRE_SET.has(value) ? (value as Genre) : 'literatura piękna';
+  const genre = GENRE_FROM_SLUG[value] ?? value;
+  return GENRE_SET.has(genre) ? (genre as Genre) : 'literatura piękna';
+}
+
+/** Genre as stored in Postgres, used by filters and writes. */
+function toGenreSlug(genre: Genre): string {
+  return GENRE_TO_SLUG[genre] ?? genre;
 }
 
 function toSource(value: string): Source {
   return SOURCE_SET.has(value) ? (value as Source) : 'unverified';
+}
+
+/** `books.pages` and `books.year` are text columns, so they arrive as strings. */
+function toNumber(value: string | number | null | undefined): number {
+  const parsed = typeof value === 'number' ? value : Number(value ?? '');
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function toBook(row: BookRow): Book {
@@ -84,12 +111,13 @@ function toBook(row: BookRow): Book {
     author: row.author,
     genre: toGenre(row.genre),
     moods: (row.moods ?? []).filter((m): m is Mood => MOOD_SET.has(m)),
-    year: row.year,
+    year: toNumber(row.year),
     publisher: row.publisher,
-    pages: row.pages,
+    pages: toNumber(row.pages),
     description: row.description,
     source: toSource(row.source),
     color: row.color,
+    coverUrl: row.cover_link?.trim() || undefined,
   };
 }
 
@@ -130,23 +158,101 @@ function fail(context: string, error: { message: string } | null): never {
 
 /* -------------------------------- catalog --------------------------------- */
 
+/** Only the columns the app renders, so a search result stays small. */
+const BOOK_COLUMNS =
+  'id,title,author,genre,moods,year,publisher,pages,description,source,color,cover_link';
+
+const BOOKS_PAGE = 200;
+
 export type Catalog = { books: Book[]; fragments: Fragment[] };
 
+/** Loads specific books by id, in chunks small enough for a GET query. */
+export async function fetchBooksByIds(ids: string[]): Promise<Book[]> {
+  const unique = [...new Set(ids.filter(Boolean))];
+  const books: Book[] = [];
+
+  for (let index = 0; index < unique.length; index += BOOKS_PAGE) {
+    const chunk = unique.slice(index, index + BOOKS_PAGE);
+    const { data, error } = await supabase.from('books').select(BOOK_COLUMNS).in('id', chunk);
+    if (error) fail('Nie udało się pobrać książek', error);
+    books.push(...((data ?? []) as BookRow[]).map(toBook));
+  }
+
+  return books;
+}
+
+export async function fetchBookById(id: string): Promise<Book | null> {
+  const { data, error } = await supabase
+    .from('books')
+    .select(BOOK_COLUMNS)
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) fail('Nie udało się pobrać książki', error);
+  return data ? toBook(data as BookRow) : null;
+}
+
+export type BookSearchOptions = {
+  limit?: number;
+  genre?: Genre | null;
+  mood?: Mood | null;
+};
+
+/**
+ * Catalogue search runs in Postgres. The table holds thousands of books, so
+ * downloading it whole would be wasteful and PostgREST would cut it at 1000
+ * rows anyway. Title and author are matched case-insensitively.
+ */
+export async function searchBooks(
+  query: string,
+  options: BookSearchOptions = {},
+): Promise<Book[]> {
+  const { limit = 20, genre = null, mood = null } = options;
+  // Commas, parentheses and quotes would break PostgREST's `or(...)` syntax.
+  const term = query.trim().replace(/[,()*%\\"]+/g, ' ').trim();
+
+  let request = supabase
+    .from('books')
+    .select(BOOK_COLUMNS)
+    .order('title', { ascending: true })
+    .limit(limit);
+
+  if (term) {
+    request = request.or(
+      `title.ilike.%${term}%,author.ilike.%${term}%,publisher.ilike.%${term}%`,
+    );
+  }
+  if (genre) request = request.eq('genre', toGenreSlug(genre));
+  if (mood) request = request.contains('moods', [mood]);
+
+  const { data, error } = await request;
+  if (error) fail('Nie udało się wyszukać książek', error);
+  return ((data ?? []) as BookRow[]).map(toBook);
+}
+
+/**
+ * The feed only needs the books its fragments point at, plus whatever the
+ * reader keeps in their library (`extraBookIds`). Everything else is fetched
+ * on demand by the search screens.
+ */
 export async function fetchCatalog(
   deviceKey: string | null,
   userId: string | null = null,
+  extraBookIds: string[] = [],
 ): Promise<Catalog> {
-  const [booksResult, fragmentsResult] = await Promise.all([
-    supabase.from('books').select('*').order('title', { ascending: true }),
-    supabase.from('fragments').select('*').order('created_at', { ascending: false }),
-  ]);
+  const fragmentsResult = await supabase
+    .from('fragments')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(1000);
 
-  if (booksResult.error) fail('Nie udało się pobrać książek', booksResult.error);
   if (fragmentsResult.error) fail('Nie udało się pobrać fragmentów', fragmentsResult.error);
 
-  const books = ((booksResult.data ?? []) as BookRow[]).map(toBook);
+  const fragmentRows = (fragmentsResult.data ?? []) as FragmentRow[];
+  const bookIds = [...fragmentRows.map((row) => row.book_id), ...extraBookIds];
+  const books = await fetchBooksByIds(bookIds);
   const known = new Set(books.map((b) => b.id));
-  const fragments = ((fragmentsResult.data ?? []) as FragmentRow[])
+  const fragments = fragmentRows
     .filter((row) => known.has(row.book_id))
     .map((row) => toFragment(row, deviceKey, userId));
 
@@ -166,14 +272,15 @@ export async function publishBook(book: Book): Promise<Book> {
       id: book.id,
       title: book.title,
       author: book.author,
-      genre: book.genre,
+      genre: toGenreSlug(book.genre),
       moods: book.moods,
-      year: book.year,
+      year: book.year ? String(book.year) : null,
       publisher: book.publisher,
-      pages: book.pages,
+      pages: book.pages ? String(book.pages) : null,
       description: book.description,
       source: book.source,
       color: book.color,
+      cover_link: book.coverUrl ?? null,
     },
     { onConflict: 'id', ignoreDuplicates: true },
   );

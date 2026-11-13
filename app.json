@@ -4,12 +4,12 @@
     "slug": "margines",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icon.svg",
     "scheme": "margines",
     "userInterfaceStyle": "light",
     "backgroundColor": "#F2E9DA",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/splash-icon.svg",
       "resizeMode": "contain",
       "backgroundColor": "#12332B"
     },
@@ -25,9 +25,9 @@
       "package": "pl.margines.app",
       "adaptiveIcon": {
         "backgroundColor": "#12332B",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/icon.svg",
+        "backgroundImage": "./assets/icon.svg",
+        "monochromeImage": "./assets/icon.svg"
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
@@ -36,9 +36,44 @@
       ]
     },
     "web": {
-      "favicon": "./assets/favicon.png",
       "bundler": "metro",
-      "output": "single"
+      "output": "single",
+      "manifest": {
+        "name": "Margines",
+        "short_name": "Margines",
+        "description": "Fragmenty, które zostają w głowie — czytaj, zapisuj i publikuj swoje ulubione cytaty z książek.",
+        "start_url": "/",
+        "display": "standalone",
+        "orientation": "portrait",
+        "background_color": "#12332B",
+        "theme_color": "#12332B",
+        "icons": [
+          {
+            "src": "./assets/icon.svg",
+            "sizes": "192x192",
+            "type": "image/svg+xml",
+            "purpose": "any"
+          },
+          {
+            "src": "./assets/icon.svg",
+            "sizes": "512x512",
+            "type": "image/svg+xml",
+            "purpose": "any"
+          },
+          {
+            "src": "./assets/icon.svg",
+            "sizes": "192x192",
+            "type": "image/svg+xml",
+            "purpose": "maskable"
+          },
+          {
+            "src": "./assets/icon.svg",
+            "sizes": "512x512",
+            "type": "image/svg+xml",
+            "purpose": "maskable"
+          }
+        ]
+      }
     },
     "plugins": [
       "expo-router",

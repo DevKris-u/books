@@ -36,7 +36,7 @@ export default function AuthCallbackScreen() {
       if (!active) return;
 
       if (error) {
-        setMessage(errorDescription || 'Google przerwał logowanie. Spróbuj ponownie.');
+        setMessage(errorDescription || 'Logowanie zostało przerwane. Spróbuj ponownie.');
         setFailed(true);
         return;
       }

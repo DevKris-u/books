@@ -1,7 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ShopSheet } from '@/components/ShopSheet';
 import {
@@ -14,9 +14,9 @@ import {
   SourceMark,
   Txt,
 } from '@/components/ui';
-import { SHELF_LABEL, Shelf, SOURCE_LABEL } from '@/data/types';
-import { fetchIsbnDescription } from '@/lib/isbnMeta';
+import { Book, SHELF_LABEL, Shelf, SOURCE_LABEL } from '@/data/types';
 import { plural } from '@/lib/utils';
+import { fetchBookById } from '@/lib/api';
 import { useStore } from '@/state/store';
 import { fonts, useColors } from '@/theme';
 
@@ -33,12 +33,36 @@ export default function BookScreen() {
   const { state, dispatch } = useStore();
   const c = useColors();
   const [shopsOpen, setShopsOpen] = useState(false);
+  // A book opened from a deep link or a search result may not be in local
+  // state yet; it is fetched once by id and then kept in the catalogue.
+  const [remote, setRemote] = useState<{ id: string; book: Book | null } | null>(null);
 
-  const book = state.books.find((b) => b.id === id);
+  const stored = state.books.find((b) => b.id === id);
+  const book = stored ?? (remote?.id === id ? remote.book ?? undefined : undefined);
+  const loadingBook = !book && remote?.id !== id;
   const item = state.library.find((i) => i.bookId === id);
   const fragments = state.fragments.filter(
     (f) => f.bookId === id && !state.reported.includes(f.id),
   );
+
+  useEffect(() => {
+    if (!id || stored) return;
+    let active = true;
+
+    fetchBookById(id)
+      .then((found) => {
+        if (!active) return;
+        setRemote({ id, book: found });
+        if (found) dispatch({ type: 'ADD_BOOK', book: found });
+      })
+      .catch(() => {
+        if (active) setRemote({ id, book: null });
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [id, stored, dispatch]);
 
   const styles = makeStyles(c);
 
@@ -61,11 +85,17 @@ export default function BookScreen() {
     return (
       <View style={[styles.root, { paddingTop: insets.top + 12, paddingHorizontal: 22 }]}>
         <IconBtn name="chevron-left" label="Wróć" onPress={() => router.back()} size={38} />
-        <EmptyState
-          title="Nie znaleźliśmy tej książki"
-          body="Mogła zostać wyłączona na wniosek wydawcy albo pochodzi z importu, którego nie znamy."
-          action={<Btn label="Wróć" variant="ghost" onPress={() => router.back()} />}
-        />
+        {loadingBook ? (
+          <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+            <ActivityIndicator size="small" color={c.claret} />
+          </View>
+        ) : (
+          <EmptyState
+            title="Nie znaleźliśmy tej książki"
+            body="Mogła zostać wyłączona na wniosek wydawcy albo pochodzi z importu, którego nie znamy."
+            action={<Btn label="Wróć" variant="ghost" onPress={() => router.back()} />}
+          />
+        )}
       </View>
     );
   }

@@ -1,6 +1,6 @@
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -35,10 +35,9 @@ import {
   Shelf,
 } from '@/data/types';
 import { plural } from '@/lib/utils';
-import { searchBnBooks } from '@/lib/bnBooks';
-import { fetchIsbnDescription } from '@/lib/isbnMeta';
+import { searchBooks } from '@/lib/api';
 import { useStore } from '@/state/store';
-import { colors, fonts, useColors } from '@/theme';
+import { fonts, useColors } from '@/theme';
 
 const SHELVES: Shelf[] = ['want', 'reading', 'read'];
 
@@ -51,7 +50,7 @@ const sameBook = (a: Book, b: Book) =>
 export default function LibraryScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { state, dispatch } = useStore();
+  const { state, dispatch, bookById } = useStore();
   const c = useColors();
 
   const [shelf, setShelf] = useState<Shelf>('want');
@@ -65,35 +64,38 @@ export default function LibraryScreen() {
   const [progressDraft, setProgressDraft] = useState('');
   const [ratingDraft, setRatingDraft] = useState(0);
   const [noteDraft, setNoteDraft] = useState('');
-  const [searchResult, setSearchResult] = useState<{ query: string; books: Book[] }>({
-    query: '',
-    books: [],
-  });
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
+  const [results, setResults] = useState<Book[]>([]);
+  const [resultsLoading, setResultsLoading] = useState(false);
+  const [resultsError, setResultsError] = useState<string | null>(null);
+  const searchRequestRef = useRef(0);
 
-  // Reuses the National Library client from the add-fragment flow. The debounce
-  // keeps a request from going out on every keystroke.
+  // Search and filters run in Postgres, so the whole catalogue is reachable
+  // without downloading thousands of books. The debounce keeps a request from
+  // going out on every keystroke.
   useEffect(() => {
     const term = query.trim();
-    if (term.length < 2) return;
+    if (!term && !genre && !mood) return;
+    const requestId = ++searchRequestRef.current;
+
     const timer = setTimeout(async () => {
-      setSearchLoading(true);
-      setSearchError(null);
+      setResultsLoading(true);
+      setResultsError(null);
       try {
-        const books = await searchBnBooks(term, 12);
-        setSearchResult({ query: term, books });
+        const books = await searchBooks(term, { limit: 60, genre, mood });
+        if (requestId === searchRequestRef.current) setResults(books);
       } catch (caught) {
-        setSearchError(
-          caught instanceof Error ? caught.message : 'Nie udało się wyszukać w Bibliotece Narodowej.',
-        );
-        setSearchResult({ query: term, books: [] });
+        if (requestId === searchRequestRef.current) {
+          setResultsError(
+            caught instanceof Error ? caught.message : 'Nie udało się wyszukać książek.',
+          );
+          setResults([]);
+        }
       } finally {
-        setSearchLoading(false);
+        if (requestId === searchRequestRef.current) setResultsLoading(false);
       }
-    }, 450);
+    }, 350);
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, genre, mood]);
 
   const all = useMemo(
     () =>
@@ -112,35 +114,12 @@ export default function LibraryScreen() {
   const needle = query.trim().toLowerCase();
   const searchActive = needle.length > 0 || !!genre || !!mood;
 
-  // BN results come from the same client the add-fragment flow uses. Books
-  // already in the catalogue are dropped because the local rows show them.
-  const searchRows: { book: Book; external?: boolean }[] =
-    searchResult.query === query.trim()
-      ? searchResult.books
-          .filter((candidate) => !state.books.some((known) => sameBook(known, candidate)))
-          .filter((candidate) => (genre ? candidate.genre === genre : true))
-          .map((candidate) => ({ book: candidate, external: true }))
-      : [];
-
   // Searching and filtering run over the whole catalogue, so a reader can find
   // a book that is not on their shelves yet. Shelves only scope the plain list.
-  const items: { book: Book; item?: LibraryItem; external?: boolean }[] = searchActive
-    ? [
-        ...state.books
-          .filter((book) => book.source !== 'excluded')
-          .filter((book) => {
-            if (!needle) return true;
-            return (
-              book.title.toLowerCase().includes(needle) ||
-              book.author.toLowerCase().includes(needle) ||
-              book.publisher.toLowerCase().includes(needle)
-            );
-          })
-          .filter((book) => (genre ? book.genre === genre : true))
-          .filter((book) => (mood ? book.moods.includes(mood) : true))
-          .map((book) => ({ book, item: state.library.find((i) => i.bookId === book.id) })),
-        ...(needle.length >= 2 ? searchRows : []),
-      ]
+  const items: { book: Book; item?: LibraryItem }[] = searchActive
+    ? results
+        .filter((book) => bookById(book.id)?.source !== 'excluded')
+        .map((book) => ({ book, item: state.library.find((i) => i.bookId === book.id) }))
     : all
         .filter((entry) => entry.item.shelf === shelf)
         .map((entry) => ({ book: entry.book, item: entry.item }));
@@ -157,25 +136,13 @@ export default function LibraryScreen() {
   const shelfEmpty = all.filter((entry) => entry.item.shelf === shelf).length === 0;
   const styles = makeStyles(c);
 
-  // The National Library record has no annotation; fetch it by ISBN as soon as
-  // the reader shows interest, so the book screen has something to show.
-  const hydrateDescription = (book: Book) => {
-    if (!book.isbn) return;
-    void fetchIsbnDescription(book.isbn).then((description) => {
-      if (description) {
-        dispatch({ type: 'UPDATE_BOOK', bookId: book.id, patch: { description } });
-      }
-    });
-  };
-
   const openBook = (book: Book) => {
-    dispatch({ type: 'ADD_BOOK', book });
-    hydrateDescription(book);
+    if (!bookById(book.id)) dispatch({ type: 'ADD_BOOK', book });
     router.push(`/ksiazka/${book.id}`);
   };
 
   const addToLibrary = (book: Book) => {
-    dispatch({ type: 'ADD_BOOK', book });
+    if (!bookById(book.id)) dispatch({ type: 'ADD_BOOK', book });
     dispatch({ type: 'ADD_TO_WANT', bookId: book.id });
     hydrateDescription(book);
   };
@@ -269,7 +236,15 @@ export default function LibraryScreen() {
         >
           {items.length === 0 ? (
             searchActive ? (
-              !searchLoading && !searchError ? (
+              resultsLoading ? (
+                <View style={{ paddingVertical: 28, alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color={c.claret} />
+                </View>
+              ) : resultsError ? (
+                <Txt variant="small" color={c.claret}>
+                  {resultsError}
+                </Txt>
+              ) : (
               <EmptyState
                 centered
                 icon="search"
@@ -287,7 +262,7 @@ export default function LibraryScreen() {
                   />
                 }
               />
-              ) : null
+              )
             ) : shelfEmpty ? (
               <EmptyState
                 centered
@@ -327,25 +302,12 @@ export default function LibraryScreen() {
               />
             )
           ) : (
-            items.map(({ item, book, external }, index) => (
+            items.map(({ item, book }, index) => (
               <View key={book.id}>
-                {external && !items[index - 1]?.external ? (
-                  <View style={styles.searchHead}>
-                    <Txt variant="meta" color={c.inkSoft}>
-                      z Biblioteki Narodowej
-                    </Txt>
-                    <Txt variant="meta" color={c.inkSoft}>
-                      {items.filter((entry) => entry.external).length}
-                    </Txt>
-                  </View>
-                ) : index > 0 ? (
-                  <Rule />
-                ) : null}
+                {index > 0 ? <Rule /> : null}
                 <View style={styles.row}>
                   <Pressable
-                    onPress={() =>
-                      external ? openBook(book) : router.push(`/ksiazka/${book.id}`)
-                    }
+                    onPress={() => openBook(book)}
                     accessibilityRole="button"
                     accessibilityLabel={`${book.title}, ${book.author}`}
                     style={({ pressed }) => [styles.rowMain, pressed ? { opacity: 0.7 } : null]}
@@ -402,17 +364,7 @@ export default function LibraryScreen() {
                       ) : null}
                     </View>
                   </Pressable>
-                  {external ? (
-                    <Pressable
-                      onPress={() => addToLibrary(book)}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Dodaj do biblioteki: ${book.title}`}
-                      hitSlop={8}
-                      style={styles.moreBtn}
-                    >
-                      <Feather name="plus" size={18} color={c.inkMid} />
-                    </Pressable>
-                  ) : item ? (
+                  {item ? (
                     <Pressable
                       onPress={() => setMenuFor(book)}
                       accessibilityRole="button"
@@ -422,21 +374,31 @@ export default function LibraryScreen() {
                     >
                       <Feather name="more-horizontal" size={18} color={c.inkMid} />
                     </Pressable>
-                  ) : null}
+                  ) : (
+                    <Pressable
+                      onPress={() => addToLibrary(book)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Dodaj do biblioteki: ${book.title}`}
+                      hitSlop={8}
+                      style={styles.moreBtn}
+                    >
+                      <Feather name="plus" size={18} color={c.inkMid} />
+                    </Pressable>
+                  )}
                 </View>
               </View>
             ))
           )}
 
-          {searchActive && searchLoading ? (
+          {searchActive && resultsLoading && items.length > 0 ? (
             <View style={{ paddingVertical: 16, alignItems: 'center' }}>
               <ActivityIndicator size="small" color={c.claret} />
             </View>
           ) : null}
 
-          {searchActive && searchError ? (
+          {searchActive && resultsError && items.length > 0 ? (
             <Txt variant="small" color={c.claret} style={{ marginTop: 10 }}>
-              {searchError}
+              {resultsError}
             </Txt>
           ) : null}
         </ScrollView>
@@ -657,16 +619,6 @@ function makeStyles(c: ReturnType<typeof useColors>) {
     rowMain: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
     moreBtn: { padding: 6 },
     progressTrack: { height: 2, backgroundColor: c.ruleSoft, width: '100%' },
-    searchHead: {
-      flexDirection: 'row',
-      alignItems: 'baseline',
-      justifyContent: 'space-between',
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: c.ruleSoft,
-      marginTop: 6,
-      paddingTop: 14,
-      paddingBottom: 4,
-    },
     menuRow: {
       flexDirection: 'row',
       alignItems: 'center',

@@ -91,11 +91,9 @@ export default function SettingsScreen() {
         await deleteAccount();
         dispatch({ type: 'RESET' });
         setConfirm(null);
-        router.replace('/onboarding');
       } else {
         await signOut();
         setConfirm(null);
-        router.replace('/');
       }
     } catch (caught) {
       setAccountError(
@@ -112,25 +110,10 @@ export default function SettingsScreen() {
         <ScreenHeader title="Ustawienia" onBack={() => router.back()} />
 
         <Section title="Profil">
-          {!user ? (
-            <Pressable
-              onPress={() => router.push('/logowanie?next=/ustawienia')}
-              accessibilityRole="button"
-              style={[styles.row, styles.rowBorder]}
-            >
-              <View style={{ flex: 1 }}>
-                <Txt variant="label">Zaloguj się przez Google</Txt>
-                <Txt variant="small" color={c.inkSoft} style={{ marginTop: 2 }}>
-                  Podpisz swoje fragmenty i miej je na każdym urządzeniu.
-                </Txt>
-              </View>
-              <Feather name="arrow-up-right" size={16} color={c.inkSoft} />
-            </Pressable>
-          ) : null}
           <Pressable
             onPress={openEdit}
             accessibilityRole="button"
-            style={[styles.row, user ? styles.rowBorder : null]}
+            style={[styles.row, styles.rowBorder]}
           >
             <View style={{ flex: 1 }}>
               <Txt variant="label">Edycja profilu</Txt>
@@ -140,14 +123,8 @@ export default function SettingsScreen() {
             </View>
             <Feather name="chevron-right" size={16} color={c.inkSoft} />
           </Pressable>
-          <Row
-            label="Dołączenie"
-            value={formatDate(state.profile.joinedAt)}
-            last={!user}
-          />
-          {user ? (
-            <Row label="Konto Google" value={user.email ?? 'połączone'} last />
-          ) : null}
+          <Row label="Dołączenie" value={formatDate(state.profile.joinedAt)} />
+          <Row label="Konto" value={user?.email ?? 'konto Marginesu'} last />
         </Section>
 
         <Section title="Powiadomienia">
@@ -221,36 +198,34 @@ export default function SettingsScreen() {
           </View>
         </Section>
 
-        {user ? (
-          <Section title="Konto">
-            <Pressable
-              onPress={() => {
-                setAccountError(null);
-                setConfirm('logout');
-              }}
-              accessibilityRole="button"
-              style={styles.row}
-            >
-              <Txt variant="label" style={{ flex: 1 }}>
-                Wyloguj
-              </Txt>
-              <Feather name="log-out" size={16} color={c.inkMid} />
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                setAccountError(null);
-                setConfirm('delete');
-              }}
-              accessibilityRole="button"
-              style={[styles.row, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.rule }]}
-            >
-              <Txt variant="label" color={c.claret} style={{ flex: 1 }}>
-                Usuń konto
-              </Txt>
-              <Feather name="trash-2" size={16} color={c.claret} />
-            </Pressable>
-          </Section>
-        ) : null}
+        <Section title="Konto">
+          <Pressable
+            onPress={() => {
+              setAccountError(null);
+              setConfirm('logout');
+            }}
+            accessibilityRole="button"
+            style={styles.row}
+          >
+            <Txt variant="label" style={{ flex: 1 }}>
+              Wyloguj
+            </Txt>
+            <Feather name="log-out" size={16} color={c.inkMid} />
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              setAccountError(null);
+              setConfirm('delete');
+            }}
+            accessibilityRole="button"
+            style={[styles.row, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.rule }]}
+          >
+            <Txt variant="label" color={c.claret} style={{ flex: 1 }}>
+              Usuń konto
+            </Txt>
+            <Feather name="trash-2" size={16} color={c.claret} />
+          </Pressable>
+        </Section>
 
         <Txt variant="micro" color={c.inkSoft} style={{ marginTop: 26, lineHeight: 17 }}>
           Powiadomienia są opcjonalne. Margines nie wysyła ich częściej niż raz dziennie, a
@@ -301,7 +276,7 @@ export default function SettingsScreen() {
         <Txt variant="body" color={c.inkMid} style={{ marginBottom: 20 }}>
           {confirm === 'delete'
             ? 'Usuniemy Twoje konto, profil i wszystkie opublikowane fragmenty. Tej operacji nie można cofnąć.'
-            : 'Wrócisz do trybu gościa. Twoje wpisy zostaną na koncie — zobaczysz je po ponownym zalogowaniu.'}
+            : 'Wylogujemy Cię z tego urządzenia. Wróć tutaj, logując się ponownie tym samym e-mailem i hasłem.'}
         </Txt>
         {accountError ? (
           <Txt variant="small" color={c.claret} style={{ marginBottom: 14 }}>

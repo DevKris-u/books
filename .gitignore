@@ -39,3 +39,14 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+.vercel
+
+# Local Netlify folder
+.netlify
+
+# Local Cloudflare folder
+.wrangler
+
+.dev.vars*
+!.dev.vars.example
+!.env.example

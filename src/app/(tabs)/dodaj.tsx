@@ -28,9 +28,8 @@ import {
 import { recogniseFragment } from '@/lib/ocr';
 import { tapLight } from '@/lib/haptics';
 import { getDeviceKey } from '@/lib/device';
-import { COVER_COLORS, searchBnBooks } from '@/lib/bnBooks';
-import { fetchIsbnDescription } from '@/lib/isbnMeta';
-import { publishBook, publishFragment } from '@/lib/api';
+import { COVER_COLORS } from '@/lib/covers';
+import { publishBook, publishFragment, searchBooks } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { normalizeText, plural } from '@/lib/utils';
 import { Candidate } from '@/lib/recommend';
@@ -48,7 +47,7 @@ export default function AddScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { state, dispatch, bookById } = useStore();
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const c = useColors();
   const styles = makeStyles(c);
 
@@ -68,6 +67,7 @@ export default function AddScreen() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchRequestRef = useRef(0);
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newAuthor, setNewAuthor] = useState('');
@@ -90,6 +90,37 @@ export default function AddScreen() {
   const todayCount = postsToday(state);
   const limitReached = todayCount >= DAILY_POST_LIMIT;
   const book = bookId ? bookById(bookId) : undefined;
+  // Titles a publisher took down stay hidden, even if Postgres still returns them.
+  const visibleResults = searchResults.filter((item) => bookById(item.id)?.source !== 'excluded');
+
+  // Search runs in Postgres, so the whole catalogue is reachable without
+  // downloading thousands of books. An empty query shows a few recent titles.
+  useEffect(() => {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    const requestId = ++searchRequestRef.current;
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      setSearchLoading(true);
+      setSearchError(null);
+      try {
+        const results = await searchBooks(query, { limit: query.trim() ? 20 : 6 });
+        if (requestId === searchRequestRef.current) setSearchResults(results);
+      } catch (caught) {
+        if (requestId === searchRequestRef.current) {
+          setSearchError(
+            caught instanceof Error ? caught.message : 'Nie udało się wyszukać książek.',
+          );
+          setSearchResults([]);
+        }
+      } finally {
+        if (requestId === searchRequestRef.current) setSearchLoading(false);
+      }
+    }, 300);
+
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, [query]);
 
   const toggleTag = (tag: EmotionTag) => {
     setTags((current) =>
@@ -129,38 +160,6 @@ export default function AddScreen() {
     }
   };
 
-  useEffect(() => {
-    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-
-    const needle = query.trim();
-    searchTimeoutRef.current = setTimeout(async () => {
-      if (!needle) {
-        setSearchResults([]);
-        setSearchError(null);
-        setSearchLoading(false);
-        return;
-      }
-
-      setSearchLoading(true);
-      setSearchError(null);
-      try {
-        const results = await searchBnBooks(needle, 20);
-        setSearchResults(results);
-      } catch (caught) {
-        setSearchError(
-          caught instanceof Error ? caught.message : 'Nie udało się wyszukać książek.',
-        );
-        setSearchResults([]);
-      } finally {
-        setSearchLoading(false);
-      }
-    }, 400);
-
-    return () => {
-      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    };
-  }, [query]);
-
   const createBook = async () => {
     if (saving) return;
     if (!newTitle.trim() || !newAuthor.trim()) {
@@ -198,24 +197,6 @@ export default function AddScreen() {
     }
   };
 
-  const selectSearchBook = (candidate: Book) => {
-    const existing = state.books.find((b) => b.id === candidate.id);
-    if (!existing) {
-      dispatch({ type: 'ADD_BOOK', book: candidate });
-    }
-    setBookId(candidate.id);
-    setQuery('');
-    setSearchResults([]);
-    // BN records carry no annotation; pull it by ISBN for later screens.
-    if (candidate.isbn) {
-      void fetchIsbnDescription(candidate.isbn).then((description) => {
-        if (description) {
-          dispatch({ type: 'UPDATE_BOOK', bookId: candidate.id, patch: { description } });
-        }
-      });
-    }
-  };
-
   const publish = async () => {
     if (!book || !purpose || saving) return;
     const cleanText = text.trim();
@@ -238,8 +219,8 @@ export default function AddScreen() {
     setError(null);
     try {
       // A fragment references its book through a foreign key, so the book has
-      // to exist in Postgres first. Books picked from Google Books only live in
-      // local state until now; publishing is idempotent for books already there.
+      // to exist in Postgres first. Books added by readers only live in local
+      // state until now; publishing is idempotent for books already there.
       await publishBook(book);
       const deviceKey = state.deviceKey ?? (await getDeviceKey());
       const fragment = await publishFragment(
@@ -309,56 +290,6 @@ export default function AddScreen() {
           book,
         }
       : null;
-
-  if (authLoading) {
-    return (
-      <View style={[styles.root, { paddingTop: insets.top + 20, paddingHorizontal: 22 }]}>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-          <ActivityIndicator size="small" color={c.claret} />
-          <Txt variant="small" color={c.inkSoft}>
-            Sprawdzamy konto…
-          </Txt>
-        </View>
-      </View>
-    );
-  }
-
-  if (!user) {
-    return (
-      <View style={[styles.root, { paddingTop: insets.top + 20, paddingHorizontal: 22 }]}>
-        <View style={{ flex: 1, justifyContent: 'center' }}>
-          <Txt variant="meta" color={c.inkSoft}>
-            publikowanie
-          </Txt>
-          <Txt style={[styles.doneTitle, { marginTop: 8 }]}>Najpierw konto.</Txt>
-          <Txt variant="body" color={c.inkMid} style={{ marginTop: 10, maxWidth: 340 }}>
-            Czytanie i przeglądanie nie wymagają logowania. Konto potrzebne jest tylko
-            wtedy, gdy chcesz zostawić swój fragment — żeby był podpisany Twoim imieniem,
-            nie numerem urządzenia.
-          </Txt>
-
-          <View style={styles.gateNote}>
-            <View style={{ width: 2, backgroundColor: c.brass, alignSelf: 'stretch' }} />
-            <Txt variant="small" color={c.inkSoft} style={{ flex: 1 }}>
-              Logujesz się przez Google. Nie dostajemy hasła, nie wysyłamy newslettera.
-            </Txt>
-          </View>
-
-          <View style={{ marginTop: 24, gap: 10 }}>
-            <Btn
-              label="Zaloguj się przez Google"
-              onPress={() => router.push('/logowanie?next=/dodaj')}
-            />
-            <Btn label="Wróć do czytania" variant="ghost" onPress={() => router.navigate('/')} />
-          </View>
-
-          <Txt variant="micro" color={c.inkSoft} style={{ marginTop: 18, lineHeight: 16 }}>
-            Konto możesz usunąć razem z wpisami w każdej chwili, z poziomu ustawień.
-          </Txt>
-        </View>
-      </View>
-    );
-  }
 
   if (published) {
     return (
@@ -682,18 +613,21 @@ export default function AddScreen() {
                 {searchError}
               </Txt>
             ) : (
-              searchResults.map((item) => {
+              visibleResults.map((item) => {
                 const active = bookId === item.id;
                 return (
                   <Pressable
                     key={item.id}
-                    onPress={() => selectSearchBook(item)}
+                    onPress={() => {
+                      if (bookById(item.id) == null) {
+                        dispatch({ type: 'ADD_BOOK', book: item });
+                      }
+                      setBookId(item.id);
+                      setQuery('');
+                    }}
                     accessibilityRole="radio"
                     accessibilityState={{ selected: active }}
-                    style={[
-                      styles.bookRow,
-                      { borderColor: active ? c.ink : c.rule },
-                    ]}
+                    style={[styles.bookRow, { borderColor: active ? c.ink : c.rule }]}
                   >
                     <Cover book={item} width={40} />
                     <View style={{ flex: 1 }}>
@@ -701,7 +635,7 @@ export default function AddScreen() {
                         {item.title}
                       </Txt>
                       <Txt variant="small" color={c.inkSoft} numberOfLines={1}>
-                        {item.author}
+                        {item.author || 'autor nieznany'}
                       </Txt>
                     </View>
                     {active ? (
@@ -721,7 +655,7 @@ export default function AddScreen() {
               })
             )}
 
-            {!searchResults.length && query.trim() ? (
+            {!searchLoading && !searchError && query.trim() && !visibleResults.length ? (
               <Txt variant="small" color={c.inkSoft} style={{ marginTop: 6 }}>
                 Nie znaleziono książek. Spróbuj innej frazy albo dodaj własną.
               </Txt>
@@ -999,12 +933,6 @@ function makeStyles(c: ReturnType<typeof useColors>) {
       borderTopColor: c.rule,
       paddingTop: 10,
       gap: 8,
-    },
-    gateNote: {
-      flexDirection: 'row',
-      gap: 10,
-      marginTop: 20,
-      paddingVertical: 2,
     },
     metaRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
     footer: {

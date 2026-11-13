@@ -20,7 +20,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Book, Source } from '@/data/types';
 import { fonts, radius, shadow, space, type, useColors } from '@/theme';
 import { tapLight } from '@/lib/haptics';
-import { coverCandidates } from '@/lib/covers';
 
 /* --------------------------------- text --------------------------------- */
 
@@ -260,19 +259,16 @@ function DrawnCover({ book, width }: { book: Book; width: number }) {
 
 /**
  * Book cover at a fixed width with the standard 2:3 book proportion, so every
- * list, card and sheet shows the same shape. Real artwork is used when it can
- * be resolved; the drawn cover sits behind it as a loading placeholder.
+ * list, card and sheet shows the same shape. Artwork comes from our own
+ * catalogue (`books.cover_link`); the drawn cover sits behind it as a loading
+ * placeholder and takes over when a book has no image or the image fails.
  */
 export function Cover({ book, width = 44 }: { book?: Book; width?: number }) {
   const c = useColors();
   const height = Math.round(width * 1.5);
   const [failed, setFailed] = useState<Record<string, boolean>>({});
 
-  // Google Books first, Open Library second — both by ISBN. If neither has
-  // artwork, the drawn cover underneath stays visible.
-  const { primary, fallback } = coverCandidates(book);
-  const artworkUri =
-    primary && !failed[primary] ? primary : fallback && !failed[fallback] ? fallback : null;
+  const artworkUri = book?.coverUrl && !failed[book.coverUrl] ? book.coverUrl : null;
 
   if (!book) {
     return (
