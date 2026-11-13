@@ -46,3 +46,7 @@ yarn-error.*
 
 # Local Cloudflare folder
 .wrangler
+
+.dev.vars*
+!.dev.vars.example
+!.env.example

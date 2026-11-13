@@ -37,7 +37,8 @@
     "@types/react": "~19.3.0",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~58.0.4",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "wrangler": "^4.161.0"
   },
   "scripts": {
     "start": "expo start",
@@ -47,7 +48,9 @@
     "web": "expo start --web",
     "export": "expo export --platform web && node scripts/pwa-postexport.js",
     "typecheck": "tsc --noEmit",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "deploy": "npm run export && wrangler pages deploy --branch main",
+    "preview": "npm run export && wrangler pages dev dist"
   },
   "private": true
 }
