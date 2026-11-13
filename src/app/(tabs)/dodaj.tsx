@@ -593,7 +593,7 @@ export default function AddScreen() {
                 Jakiej książki?
               </Txt>
               <Txt variant="small" color={c.inkSoft} style={{ marginTop: 4 }}>
-                Szukamy po tytule i autorze. Jeśli jej nie ma, dodaj ją — to 20 sekund.
+                Szukamy w katalogu Biblioteki Narodowej. Jeśli jej nie ma, dodaj ją — to 20 sekund.
               </Txt>
             </View>
 

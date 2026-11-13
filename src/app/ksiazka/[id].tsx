@@ -66,6 +66,21 @@ export default function BookScreen() {
 
   const styles = makeStyles(c);
 
+  // National Library records have no annotation, so it is fetched by ISBN the
+  // first time the book is opened.
+  useEffect(() => {
+    if (!book?.isbn || book.description) return;
+    let active = true;
+    void fetchIsbnDescription(book.isbn).then((description) => {
+      if (active && description) {
+        dispatch({ type: 'UPDATE_BOOK', bookId: book.id, patch: { description } });
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [book?.id, book?.isbn, book?.description, dispatch]);
+
   if (!book) {
     return (
       <View style={[styles.root, { paddingTop: insets.top + 12, paddingHorizontal: 22 }]}>
@@ -185,7 +200,7 @@ export default function BookScreen() {
         )}
 
         <Txt variant="body" color={c.inkMid} style={{ marginTop: 20 }}>
-          {book.description}
+          {book.description || 'Nie mamy jeszcze opisu tej książki.'}
         </Txt>
 
         <Pressable

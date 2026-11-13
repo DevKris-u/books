@@ -41,6 +41,12 @@ import { fonts, useColors } from '@/theme';
 
 const SHELVES: Shelf[] = ['want', 'reading', 'read'];
 
+const bookSignature = (book: { title: string; author: string }) =>
+  `${book.title.toLowerCase()}|${book.author.toLowerCase()}`;
+
+const sameBook = (a: Book, b: Book) =>
+  a.id === b.id || (!!a.isbn && a.isbn === b.isbn) || bookSignature(a) === bookSignature(b);
+
 export default function LibraryScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -138,6 +144,7 @@ export default function LibraryScreen() {
   const addToLibrary = (book: Book) => {
     if (!bookById(book.id)) dispatch({ type: 'ADD_BOOK', book });
     dispatch({ type: 'ADD_TO_WANT', bookId: book.id });
+    hydrateDescription(book);
   };
 
   return (
