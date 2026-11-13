@@ -1,0 +1,4 @@
+# Cloudflare Pages: SPA fallback dla Expo Router.
+# Istniejące pliki statyczne mają pierwszeństwo, więc ten rewrite
+# dotyczy tylko ścieżek bez odpowiednika w dist/.
+/*    /index.html   200
