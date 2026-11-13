@@ -25,9 +25,24 @@ function copyRecursive(src, dest) {
 }
 
 function injectManifestLink(html) {
-  const manifestLink = '<link rel="manifest" href="/manifest.json" />\n';
-  if (html.includes('rel="manifest"')) return html;
-  return html.replace('</head>', manifestLink + '</head>');
+  const tags = [
+    '<link rel="manifest" href="/manifest.json" />',
+    '<meta name="theme-color" content="#12332B" />',
+    '<meta name="apple-mobile-web-app-capable" content="yes" />',
+    '<meta name="apple-mobile-web-app-status-bar-style" content="default" />',
+    '<meta name="apple-mobile-web-app-title" content="Margines" />',
+  ]
+    .filter((tag) => !html.includes(tag))
+    .join('\n');
+  if (!tags) return html;
+  return html.replace('</head>', tags + '\n</head>');
+}
+
+function setLanguage(html) {
+  if (/<html[^>]*\blang=/.test(html)) {
+    return html.replace(/<html([^>]*?)\blang="[^"]*"/, '<html$1lang="pl"');
+  }
+  return html.replace('<html', '<html lang="pl"');
 }
 
 function injectServiceWorker(html) {
@@ -71,9 +86,10 @@ if (fs.existsSync(ASSETS)) {
 
 // 3. Wstrzyknij linki do index.html
 let html = fs.readFileSync(INDEX, 'utf8');
+html = setLanguage(html);
 html = injectManifestLink(html);
 html = injectServiceWorker(html);
 fs.writeFileSync(INDEX, html);
 
-console.log('Wstrzyknięto manifest i service worker do dist/index.html');
+console.log('Wstrzyknięto manifest, metatagi PWA i service worker do dist/index.html');
 console.log('PWA gotowe.');
