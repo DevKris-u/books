@@ -4,12 +4,12 @@
     "slug": "margines",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.svg",
+    "icon": "./assets/icon.png",
     "scheme": "margines",
     "userInterfaceStyle": "light",
     "backgroundColor": "#F2E9DA",
     "splash": {
-      "image": "./assets/splash-icon.svg",
+      "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#12332B"
     },
@@ -25,9 +25,8 @@
       "package": "pl.margines.app",
       "adaptiveIcon": {
         "backgroundColor": "#12332B",
-        "foregroundImage": "./assets/icon.svg",
-        "backgroundImage": "./assets/icon.svg",
-        "monochromeImage": "./assets/icon.svg"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "monochromeImage": "./assets/adaptive-icon.png"
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
@@ -36,44 +35,9 @@
       ]
     },
     "web": {
+      "favicon": "./assets/favicon.png",
       "bundler": "metro",
-      "output": "single",
-      "manifest": {
-        "name": "Margines",
-        "short_name": "Margines",
-        "description": "Fragmenty, które zostają w głowie — czytaj, zapisuj i publikuj swoje ulubione cytaty z książek.",
-        "start_url": "/",
-        "display": "standalone",
-        "orientation": "portrait",
-        "background_color": "#12332B",
-        "theme_color": "#12332B",
-        "icons": [
-          {
-            "src": "./assets/icon.svg",
-            "sizes": "192x192",
-            "type": "image/svg+xml",
-            "purpose": "any"
-          },
-          {
-            "src": "./assets/icon.svg",
-            "sizes": "512x512",
-            "type": "image/svg+xml",
-            "purpose": "any"
-          },
-          {
-            "src": "./assets/icon.svg",
-            "sizes": "192x192",
-            "type": "image/svg+xml",
-            "purpose": "maskable"
-          },
-          {
-            "src": "./assets/icon.svg",
-            "sizes": "512x512",
-            "type": "image/svg+xml",
-            "purpose": "maskable"
-          }
-        ]
-      }
+      "output": "single"
     },
     "plugins": [
       "expo-router",

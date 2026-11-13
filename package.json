@@ -49,6 +49,7 @@
     "export": "expo export --platform web && node scripts/pwa-postexport.js",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
+    "icons": "node scripts/generate-icons.js",
     "deploy": "npm run export && wrangler pages deploy --branch main",
     "preview": "npm run export && wrangler pages dev dist"
   },
