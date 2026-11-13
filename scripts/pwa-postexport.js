@@ -9,7 +9,6 @@ const ROOT = process.cwd();
 const PUBLIC = path.join(ROOT, 'public');
 const ASSETS = path.join(ROOT, 'assets');
 const DIST = path.join(ROOT, 'dist');
-const INDEX = path.join(DIST, 'index.html');
 
 function copyRecursive(src, dest) {
   const stat = fs.statSync(src);
@@ -85,12 +84,32 @@ if (fs.existsSync(ASSETS)) {
   console.warn('Katalog assets/ nie istnieje — pomijam kopiowanie.');
 }
 
-// 3. Wstrzyknij linki do index.html
-let html = fs.readFileSync(INDEX, 'utf8');
-html = setLanguage(html);
-html = injectManifestLink(html);
-html = injectServiceWorker(html);
-fs.writeFileSync(INDEX, html);
+// 3. Wstrzyknij linki do wszystkich plików HTML w dist/
+// (przy web.output: "single" jest tylko index.html; przy "static"
+// każda trasa ma własny plik HTML — wtedy też musi mieć manifest).
+function findHtmlFiles(dir) {
+  const found = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      found.push(...findHtmlFiles(full));
+    } else if (entry.name.endsWith('.html')) {
+      found.push(full);
+    }
+  }
+  return found;
+}
 
-console.log('Wstrzyknięto manifest, metatagi PWA i service worker do dist/index.html');
+const htmlFiles = findHtmlFiles(DIST);
+for (const file of htmlFiles) {
+  let html = fs.readFileSync(file, 'utf8');
+  html = setLanguage(html);
+  html = injectManifestLink(html);
+  html = injectServiceWorker(html);
+  fs.writeFileSync(file, html);
+}
+
+console.log(
+  `Wstrzyknięto manifest, metatagi PWA i service worker do ${htmlFiles.length} plik(ów) HTML`
+);
 console.log('PWA gotowe.');
