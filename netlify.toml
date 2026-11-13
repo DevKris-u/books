@@ -3,8 +3,8 @@
   publish = "dist"
 
 [build.environment]
-  NODE_VERSION = "20"
-  NPM_FLAGS = "--no-audit --no-fund"
+  NODE_VERSION = "22"
+  NPM_FLAGS = "--include=dev --no-audit --no-fund"
 
 # SPA fallback — Expo Router obsługuje routing po stronie klienta.
 [[redirects]]
